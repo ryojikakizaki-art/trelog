@@ -200,7 +200,7 @@ svg.chart{width:100%;height:170px;display:block;}
     <button class="btn" id="resetProg" style="color:var(--danger);">メニューを初期設定に戻す</button>
   </section>
 
-  <div class="ver" id="ver">v7</div>
+  <div class="ver" id="ver">v8</div>
 </div>
 
 <nav class="tabs" id="tabs"></nav>
@@ -315,7 +315,7 @@ svg.chart{width:100%;height:170px;display:block;}
   function schedulePush(sec){ensurePush().then(function(s){if(!s)return;fetch(WORKER_URL+'/schedule',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:pushId,subscription:s,delay:sec})}).catch(function(){});});}
   function cancelPush(){if(!pushSub)return;fetch(WORKER_URL+'/cancel',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:pushId})}).catch(function(){});}
   function tick(){var rem=Math.max(0,Math.round((endAt-Date.now())/1000));tnum.textContent=mmss(rem);tchip.textContent='休憩 '+mmss(rem);tbar.style.width=(total?Math.round(rem/total*100):0)+'%';
-    if(rem<=0){clearInterval(tId);tId=null;tEl.classList.add('done');tchip.classList.add('done');tlabel.textContent='休憩おわり！次のセットへ';tchip.textContent='休憩おわり';cancelAlarm();playAlarmEl();cancelPush();if(navigator.vibrate)navigator.vibrate([300,120,300,120,300]);relWake();notifyEnd();}}
+    if(rem<=0){clearInterval(tId);tId=null;tEl.classList.add('done');tchip.classList.add('done');tlabel.textContent='休憩おわり！次のセットへ';tchip.textContent='休憩おわり';cancelAlarm();playAlarmEl();if(navigator.vibrate)navigator.vibrate([300,120,300,120,300]);relWake();}}
   function startTimer(sec,ex){if(tId)clearInterval(tId);if(kaStopT){clearTimeout(kaStopT);kaStopT=null;}total=sec;endAt=Date.now()+sec*1000;tEl.style.display='block';tEl.classList.remove('done');tchip.classList.remove('done');tchip.style.display='block';tlabel.textContent='休憩中';tex.textContent=ex;reqWake();schedulePush(sec);if('Notification' in window&&Notification.permission==='default'){try{Notification.requestPermission().then(function(p){if(p==='granted')ensurePush();});}catch(e){}}tick();tId=setInterval(tick,250);}
   function beep(){var a=getAC();if(a){try{var o=a.createOscillator(),g=a.createGain();o.connect(g);g.connect(a.destination);o.type='sine';o.frequency.value=880;g.gain.value=0.4;o.start();setTimeout(function(){try{o.frequency.value=1175;}catch(e){}},170);setTimeout(function(){try{o.stop();}catch(e){}},520);}catch(e){}}if(navigator.vibrate)navigator.vibrate([300,120,300]);}
   document.getElementById('tadd').addEventListener('click',function(){endAt+=30000;total+=30;if(!tId){tEl.classList.remove('done');tchip.classList.remove('done');reqWake();tId=setInterval(tick,250);}tick();});
