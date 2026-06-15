@@ -33,7 +33,13 @@ button{cursor:pointer;}
 .scheme{color:var(--faint);}
 .inrow{display:flex;align-items:center;gap:8px;margin-top:10px;flex-wrap:wrap;}
 .inrow input{width:74px;padding:9px 10px;border:1px solid var(--line);border-radius:10px;text-align:center;}
-.x{color:var(--faint);}
+.x{color:var(--faint);font-size:18px;}
+.reco{font-size:13px;margin:8px 0 2px;color:#0f5a45;background:var(--rest-bg);border-radius:10px;padding:7px 10px;line-height:1.5;}
+.reco b{font-weight:700;font-size:15px;}
+.reco.faint{color:var(--muted);background:#f3f4f6;}
+.ig{display:flex;flex-direction:column;gap:3px;}
+.ig label{font-size:11px;color:var(--muted);}
+.ig input{width:92px;padding:11px 8px;border:1px solid var(--line);border-radius:10px;text-align:center;font-size:18px;}
 .rec{margin-left:auto;padding:9px 16px;background:var(--accent);color:#fff;border:none;border-radius:10px;font-weight:600;}
 .pre{padding:9px 10px;background:#fff;border:1px solid var(--line);border-radius:10px;color:var(--muted);font-size:13px;}
 .sets{margin-top:10px;display:flex;flex-wrap:wrap;gap:6px;}
@@ -190,7 +196,7 @@ svg.chart{width:100%;height:170px;display:block;}
     <button class="btn" id="resetProg" style="color:var(--danger);">メニューを初期設定に戻す</button>
   </section>
 
-  <div class="ver" id="ver">v2</div>
+  <div class="ver" id="ver">v3</div>
 </div>
 
 <nav class="tabs" id="tabs"></nav>
@@ -228,6 +234,15 @@ svg.chart{width:100%;height:170px;display:block;}
   if(!S.program[daySel.value])daySel.value=Object.keys(S.program)[0];
   daySel.addEventListener('change',function(){localStorage.setItem('ado_day',daySel.value);renderRec();});
 
+  function parseScheme(sc){if(!sc)return{lo:8,hi:12,sets:3};var p=sc.split('×');var rn=(p[0].match(/\d+/g)||[]).map(Number);var sn=(p[1]||'').match(/\d+/g)||[3];var lo=rn[0]||8,hi=rn[1]||lo;return{lo:lo,hi:hi,sets:Number(sn[0])||3};}
+  function round25(x){return Math.round(x/2.5)*2.5;}
+  function repPct(r){var t={1:1,2:.95,3:.92,4:.9,5:.87,6:.84,7:.82,8:.8,9:.77,10:.75,11:.72,12:.7,15:.65};return t[r]||(r<=15?0.95-0.02*r:0.6);}
+  function recommend(ex,scheme,ls){var ps=parseScheme(scheme);
+    if(ls&&ls.sets.length){var tw=Math.max.apply(null,ls.sets.map(function(s){return s.weight;}));var rr=Math.max.apply(null,ls.sets.filter(function(s){return s.weight===tw;}).map(function(s){return s.reps;}));
+      if(rr>=ps.hi){return{weight:round25(tw+2.5),reps:ps.lo,note:'前回'+fmtW(tw)+'kg×'+rr+'（上限達成）→ +2.5kg'};}
+      return{weight:tw,reps:Math.min(rr+1,ps.hi),note:'前回'+fmtW(tw)+'kg×'+rr+' → 同じ重さで+1回めざす'};}
+    if(/ベンチ/.test(ex)){var w=round25(100*repPct(ps.lo));return{weight:w,reps:ps.lo,note:'ベンチ100kg基準（'+ps.lo+'回≈'+Math.round(repPct(ps.lo)*100)+'%）'};}
+    return null;}
   function renderRec(){
     var list=document.getElementById('list');list.innerHTML='';
     (S.program[daySel.value]||[]).forEach(function(row){
@@ -235,14 +250,17 @@ svg.chart{width:100%;height:170px;display:block;}
       var ls=lastSession(ex),ts=todaySets(ex);
       var card=document.createElement('div');card.className='card';
       var prev=ls?('前回 '+days(ls.date)+'：<b>'+ls.sets.map(function(s){return fmtW(s.weight)+'×'+s.reps;}).join(', ')+'</b>'):'前回の記録なし';
+      var rec=recommend(ex,scheme,ls);
+      var recLine=rec?('<div class="reco">おすすめ <b>'+fmtW(rec.weight)+'kg × '+rec.reps+'回</b>（'+parseScheme(scheme).sets+'セット）<br><span class="faint">'+rec.note+'</span></div>'):'<div class="reco faint">初回はフォーム重視で余裕をもって。次回から「おすすめ」を出します。</div>';
       card.innerHTML='<div class="ctop"><span class="exname">'+ex+'</span><span class="rest">休憩 '+rest+'秒</span></div>'
-        +'<div class="prev">'+prev+' <span class="scheme">／ '+scheme+'</span></div>'
-        +'<div class="inrow">'+(ls?'<button class="pre" type="button">前回</button>':'')
-        +'<input class="w" type="number" inputmode="decimal" step="2.5" placeholder="kg"> <span class="x">×</span> '
-        +'<input class="r" type="number" inputmode="numeric" step="1" placeholder="回">'
+        +'<div class="prev">'+prev+' <span class="scheme">／ 目安 '+scheme+'</span></div>'
+        +recLine
+        +'<div class="inrow">'
+        +'<div class="ig"><label>重量 (kg)</label><input class="w" type="number" inputmode="decimal" step="2.5" placeholder="kg"'+(rec?' value="'+fmtW(rec.weight)+'"':'')+'></div>'
+        +'<span class="x">×</span>'
+        +'<div class="ig"><label>回数</label><input class="r" type="number" inputmode="numeric" step="1" placeholder="回"'+(rec?' value="'+rec.reps+'"':'')+'></div>'
         +'<button class="rec" type="button">記録</button></div><div class="sets"></div>';
-      var wI=card.querySelector('.w'),rI=card.querySelector('.r'),pre=card.querySelector('.pre');
-      if(pre)pre.addEventListener('click',function(){wI.value=fmtW(ls.sets[0].weight);rI.value=ls.sets[0].reps;});
+      var wI=card.querySelector('.w'),rI=card.querySelector('.r');
       card.querySelector('.rec').addEventListener('click',function(){
         var w=parseFloat(wI.value),r=parseInt(rI.value,10);if(!(w>0)||!(r>0)){wI.focus();return;}
         S.logs.push({date:today,exercise:ex,setNo:todaySets(ex).length+1,weight:w,reps:r});save();startTimer(rest,ex);renderRec();
