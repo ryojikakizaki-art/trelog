@@ -251,17 +251,25 @@ svg.chart{width:100%;height:170px;display:block;}
       </div>
     </div>
     <div class="card">
-      <label class="fld">音声アラームの文言（休憩終了時に読み上げ）</label>
-      <div class="inrow">
+      <label class="fld">休憩終了アラーム</label>
+      <select id="alarmType" class="sel">
+        <option value="standard">電子音（標準）</option>
+        <option value="rapid">連続ビープ（ピピピ）</option>
+        <option value="chime">チャイム（ピンポン）</option>
+        <option value="8bit">8bit（ピコピコ）</option>
+        <option value="voice">読み上げ（音声）</option>
+        <option value="none">なし（バイブのみ）</option>
+      </select>
+      <div id="voiceRow" class="inrow" style="margin-top:8px;">
         <input id="voiceText" class="txt" placeholder="例：休憩終了。次のセットだ。" style="flex:1;min-width:120px;width:auto;">
-        <button class="btn sm" id="voiceTest">🔊 テスト</button>
       </div>
-      <div class="muted" style="font-size:12px;margin-top:6px;">端末の音声で読み上げます（ムスカ声にはなりません）。空欄にすると通常のアラーム音に戻ります。</div>
+      <div class="row" style="margin-top:8px;"><button class="btn sm" id="alarmTest">🔊 テスト再生</button></div>
+      <div class="muted" style="font-size:12px;margin-top:6px;">電子音は前面（アプリ表示中）で鳴ります。ロック中／バックグラウンドは通知でお知らせ。「読み上げ」は端末の音声（特定キャラの声は不可）。</div>
     </div>
     <button class="btn" id="resetProg" style="color:var(--danger);">メニューを初期設定に戻す</button>
   </section>
 
-  <div class="ver" id="ver">v17</div>
+  <div class="ver" id="ver">v18</div>
 </div>
 
 <div class="timer" id="timer">
@@ -288,7 +296,7 @@ svg.chart{width:100%;height:170px;display:block;}
   var today=todayStr();
   function load(){try{return JSON.parse(localStorage.getItem(KEY))||{}}catch(e){return{}}}
   var S=load();
-  S.logs=S.logs||[];S.body=S.body||[];S.cardio=S.cardio||[];S.meals=S.meals||[];S.notes=S.notes||{};S.trainMin=S.trainMin||{};if(S.voiceText===undefined)S.voiceText='休憩終了。次のセットだ。';
+  S.logs=S.logs||[];S.body=S.body||[];S.cardio=S.cardio||[];S.meals=S.meals||[];S.notes=S.notes||{};S.trainMin=S.trainMin||{};if(S.voiceText===undefined)S.voiceText='休憩終了。次のセットだ。';if(S.alarmType===undefined)S.alarmType='standard';
   if(!S.program){S.program=JSON.parse(JSON.stringify(DEFAULT_PROGRAM));}
   function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}}
 
@@ -385,6 +393,10 @@ svg.chart{width:100%;height:170px;display:block;}
   document.addEventListener('click',unlockAudio,{once:true});
   function playAlarmEl(){mixAudio();var ok=false;if(alarmEl){try{alarmEl.muted=false;alarmEl.currentTime=0;var p=alarmEl.play();ok=true;if(p&&p.catch)p.catch(function(){beep();});}catch(e){ok=false;}}if(!ok)beep();}
   function speakAlarm(){var t=(S.voiceText||'').trim();if(!t||!('speechSynthesis' in window)){playAlarmEl();return;}try{mixAudio();var u=new SpeechSynthesisUtterance(t);u.lang='ja-JP';u.rate=0.95;u.pitch=0.7;u.volume=1;speechSynthesis.cancel();speechSynthesis.speak(u);}catch(e){playAlarmEl();}}
+  function sndRapid(){var a=getAC();if(!a)return false;try{for(var i=0;i<4;i++){var o=a.createOscillator(),g=a.createGain();o.type='square';o.frequency.value=1000;var st=a.currentTime+i*0.16;g.gain.setValueAtTime(0.0001,st);g.gain.exponentialRampToValueAtTime(0.5,st+0.01);g.gain.exponentialRampToValueAtTime(0.0001,st+0.1);o.connect(g);g.connect(a.destination);o.start(st);o.stop(st+0.12);}return true;}catch(e){return false;}}
+  function sndChime(){var a=getAC();if(!a)return false;try{[[660,0,0.45],[523,0.26,0.6]].forEach(function(f){var o=a.createOscillator(),g=a.createGain();o.type='sine';o.frequency.value=f[0];var st=a.currentTime+f[1];g.gain.setValueAtTime(0.0001,st);g.gain.exponentialRampToValueAtTime(0.5,st+0.02);g.gain.exponentialRampToValueAtTime(0.0001,st+f[2]);o.connect(g);g.connect(a.destination);o.start(st);o.stop(st+f[2]+0.05);});return true;}catch(e){return false;}}
+  function snd8bit(){var a=getAC();if(!a)return false;try{[523,659,784,1047].forEach(function(fr,i){var o=a.createOscillator(),g=a.createGain();o.type='square';o.frequency.value=fr;var st=a.currentTime+i*0.1;g.gain.setValueAtTime(0.0001,st);g.gain.exponentialRampToValueAtTime(0.4,st+0.01);g.gain.exponentialRampToValueAtTime(0.0001,st+0.09);o.connect(g);g.connect(a.destination);o.start(st);o.stop(st+0.1);});return true;}catch(e){return false;}}
+  function fireAlarm(){mixAudio();var t=S.alarmType||'standard';if(t==='none')return;if(t==='voice'){speakAlarm();return;}if(t==='rapid'){if(!sndRapid())playAlarmEl();return;}if(t==='chime'){if(!sndChime())playAlarmEl();return;}if(t==='8bit'){if(!snd8bit())playAlarmEl();return;}playAlarmEl();}
   var WORKER_URL='https://trelog-push.ryoji-kakizaki.workers.dev';
   var VAPID_PUBLIC='BO7Kz8ZOG-WonPORzmrAPxDYnz8kGtKORx9HWpO3gRvcE5vqZZmfvH9FqqKOMsUHm6nci93tnrFWKM3JuJsLB94';
   var pushSub=null,pushId=localStorage.getItem('pushId')||(crypto.randomUUID?crypto.randomUUID():String(Date.now())+Math.round(Math.random()*1e9));
@@ -394,7 +406,7 @@ svg.chart{width:100%;height:170px;display:block;}
   function schedulePush(sec){ensurePush().then(function(s){if(!s)return;fetch(WORKER_URL+'/schedule',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:pushId,subscription:s,delay:sec})}).catch(function(){});});}
   function cancelPush(){if(!pushSub)return;fetch(WORKER_URL+'/cancel',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:pushId})}).catch(function(){});}
   function tick(){var rem=Math.max(0,Math.round((endAt-Date.now())/1000));tnum.textContent=mmss(rem);tchip.textContent='休憩 '+mmss(rem);tbar.style.width=(total?Math.round(rem/total*100):0)+'%';
-    if(rem<=0){clearInterval(tId);tId=null;tEl.classList.add('done');tchip.classList.add('done');tlabel.textContent='休憩おわり！次のセットへ';tchip.textContent='休憩おわり';cancelAlarm();speakAlarm();if(navigator.vibrate)navigator.vibrate([300,120,300,120,300]);relWake();}}
+    if(rem<=0){clearInterval(tId);tId=null;tEl.classList.add('done');tchip.classList.add('done');tlabel.textContent='休憩おわり！次のセットへ';tchip.textContent='休憩おわり';cancelAlarm();fireAlarm();if(navigator.vibrate)navigator.vibrate([300,120,300,120,300]);relWake();}}
   function startTimer(sec,ex){if(tId)clearInterval(tId);if(kaStopT){clearTimeout(kaStopT);kaStopT=null;}total=sec;endAt=Date.now()+sec*1000;tEl.style.display='block';tEl.classList.remove('done');tchip.classList.remove('done');tchip.style.display='block';tlabel.textContent='休憩中';tex.textContent=ex;reqWake();schedulePush(sec);if('Notification' in window&&Notification.permission==='default'){try{Notification.requestPermission().then(function(p){if(p==='granted')ensurePush();});}catch(e){}}tick();tId=setInterval(tick,250);}
   function beep(){var a=getAC();if(a){try{var o=a.createOscillator(),g=a.createGain();o.connect(g);g.connect(a.destination);o.type='sine';o.frequency.value=880;g.gain.value=0.4;o.start();setTimeout(function(){try{o.frequency.value=1175;}catch(e){}},170);setTimeout(function(){try{o.stop();}catch(e){}},520);}catch(e){}}if(navigator.vibrate)navigator.vibrate([300,120,300]);}
   document.getElementById('tsub').addEventListener('click',function(){endAt-=30000;if(endAt<Date.now()+1000)endAt=Date.now()+1000;total=Math.max(1,total-30);tick();});
@@ -555,9 +567,14 @@ svg.chart{width:100%;height:170px;display:block;}
   document.getElementById('renameDay').addEventListener('click',function(){var oldK=setDay.value;var name=(prompt('「'+oldK+'」の新しい名前は？',oldK)||'').trim();if(!name||name===oldK)return;if(S.program[name]){alert('同じ名前の日があります');return;}var np={};Object.keys(S.program).forEach(function(k){np[k===oldK?name:k]=S.program[k];});S.program=np;if(daySel.value===oldK)daySel.value=name;refreshDays(name);});
   document.getElementById('delDay').addEventListener('click',function(){var k=setDay.value;if(Object.keys(S.program).length<=1){alert('最後の1日は削除できません');return;}if(confirm('「'+k+'」を削除しますか？（この日のメニュー構成のみ削除・記録データは残ります）')){delete S.program[k];refreshDays();}});
   document.getElementById('recAddEx').addEventListener('click',function(){var n=document.getElementById('recNewEx').value.trim(),r=parseInt(document.getElementById('recNewRest').value,10);if(!n)return;S.program[daySel.value].push([n,(r>=0?r:90),'']);openEx=n;document.getElementById('recNewEx').value='';document.getElementById('recNewRest').value='';save();renderRec();});
+  var alarmTypeEl=document.getElementById('alarmType');
   var voiceTextEl=document.getElementById('voiceText');
+  var voiceRowEl=document.getElementById('voiceRow');
+  function syncVoiceRow(){if(voiceRowEl)voiceRowEl.style.display=(alarmTypeEl&&alarmTypeEl.value==='voice')?'flex':'none';}
+  if(alarmTypeEl){alarmTypeEl.value=S.alarmType||'standard';alarmTypeEl.addEventListener('change',function(){S.alarmType=this.value;save();syncVoiceRow();});}
   if(voiceTextEl){voiceTextEl.value=S.voiceText||'';voiceTextEl.addEventListener('input',function(){S.voiceText=this.value;save();});}
-  document.getElementById('voiceTest').addEventListener('click',function(){if(voiceTextEl){S.voiceText=voiceTextEl.value;save();}speakAlarm();});
+  syncVoiceRow();
+  document.getElementById('alarmTest').addEventListener('click',function(){if(voiceTextEl){S.voiceText=voiceTextEl.value;save();}fireAlarm();});
 
   var MNAME={delt_front:'肩前部',delt_side:'肩中部',delt_rear:'肩後部',chest_up:'胸(上部)',chest_low:'胸(下部)',biceps:'二頭',triceps:'三頭',forearms:'前腕',traps:'僧帽',lats:'広背',lowerback:'下背',abs:'腹直',obliques:'腹斜',quads:'大腿四頭',adductors:'内転筋',hamstrings:'ハム',glutes:'臀',calves:'カーフ'};
   var MAJORS=['chest_up','chest_low','delt_front','delt_side','delt_rear','lats','traps','biceps','triceps','abs','quads','hamstrings','glutes','calves'];
