@@ -253,7 +253,7 @@ svg.chart{width:100%;height:170px;display:block;}
     <button class="btn" id="resetProg" style="color:var(--danger);">メニューを初期設定に戻す</button>
   </section>
 
-  <div class="ver" id="ver">v15</div>
+  <div class="ver" id="ver">v16</div>
 </div>
 
 <div class="timer" id="timer">
@@ -363,7 +363,9 @@ svg.chart{width:100%;height:170px;display:block;}
   function mmss(s){var m=Math.floor(s/60),x=s%60;return m+':'+(x<10?'0':'')+x;}
   function reqWake(){try{if('wakeLock' in navigator)navigator.wakeLock.request('screen').then(function(w){wake=w;}).catch(function(){});}catch(e){}}
   function relWake(){try{if(wake){wake.release();wake=null;}}catch(e){}}
-  function getAC(){if(!ac){try{ac=new (window.AudioContext||window.webkitAudioContext)();}catch(e){}}if(ac&&ac.state==='suspended'){try{ac.resume();}catch(e){}}return ac;}
+  function mixAudio(){try{if(navigator.audioSession)navigator.audioSession.type='transient';}catch(e){}}
+  mixAudio();
+  function getAC(){mixAudio();if(!ac){try{ac=new (window.AudioContext||window.webkitAudioContext)();}catch(e){}}if(ac&&ac.state==='suspended'){try{ac.resume();}catch(e){}}return ac;}
   function keepAliveStart(){var a=getAC();if(!a||silentSrc)return;try{var buf=a.createBuffer(1,a.sampleRate,a.sampleRate);var d=buf.getChannelData(0);for(var i=0;i<d.length;i++)d[i]=Math.sin(i*0.02)*0.0006;silentSrc=a.createBufferSource();silentSrc.buffer=buf;silentSrc.loop=true;silentSrc.connect(a.destination);silentSrc.start();}catch(e){}}
   function keepAliveStop(){try{if(silentSrc){silentSrc.stop();silentSrc.disconnect();silentSrc=null;}}catch(e){}}
   function cancelAlarm(){if(alarmNodes){alarmNodes.forEach(function(o){try{o.stop();}catch(e){}});alarmNodes=null;}alarmScheduled=false;}
@@ -373,7 +375,7 @@ svg.chart{width:100%;height:170px;display:block;}
   function unlockAudio(){getAC();if(alarmEl){try{alarmEl.muted=true;var p=alarmEl.play();if(p&&p.then)p.then(function(){alarmEl.pause();alarmEl.currentTime=0;}).catch(function(){});}catch(e){}}}
   document.addEventListener('touchend',unlockAudio,{once:true});
   document.addEventListener('click',unlockAudio,{once:true});
-  function playAlarmEl(){var ok=false;if(alarmEl){try{alarmEl.muted=false;alarmEl.currentTime=0;var p=alarmEl.play();ok=true;if(p&&p.catch)p.catch(function(){beep();});}catch(e){ok=false;}}if(!ok)beep();}
+  function playAlarmEl(){mixAudio();var ok=false;if(alarmEl){try{alarmEl.muted=false;alarmEl.currentTime=0;var p=alarmEl.play();ok=true;if(p&&p.catch)p.catch(function(){beep();});}catch(e){ok=false;}}if(!ok)beep();}
   var WORKER_URL='https://trelog-push.ryoji-kakizaki.workers.dev';
   var VAPID_PUBLIC='BO7Kz8ZOG-WonPORzmrAPxDYnz8kGtKORx9HWpO3gRvcE5vqZZmfvH9FqqKOMsUHm6nci93tnrFWKM3JuJsLB94';
   var pushSub=null,pushId=localStorage.getItem('pushId')||(crypto.randomUUID?crypto.randomUUID():String(Date.now())+Math.round(Math.random()*1e9));
