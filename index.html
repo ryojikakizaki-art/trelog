@@ -100,7 +100,10 @@ svg.chart{width:100%;height:170px;display:block;}
 .card.exc.done{background:#eef7f2;border-color:#cfe6d9;}
 .card.exc.done .exname{color:#0f5a45;}
 .ebody{margin-top:6px;}
-.again{margin-top:8px;width:100%;padding:10px;background:#fff;border:1px dashed var(--rest);color:var(--rest);border-radius:10px;font-weight:600;font-size:14px;}
+.iginput{display:flex;align-items:stretch;gap:4px;}
+.iginput input{width:70px;}
+.recall{flex:none;width:30px;border:1px solid var(--line);background:#fff;color:var(--rest);border-radius:8px;font-size:17px;font-weight:700;line-height:1;padding:0;}
+.recall:active{background:var(--rest-bg);}
 .restrow{display:flex;align-items:center;gap:8px;margin-top:12px;flex-wrap:wrap;}
 .rlab{font-size:13px;color:var(--muted);}
 .rsec{font-weight:600;min-width:50px;text-align:center;}
@@ -250,7 +253,7 @@ svg.chart{width:100%;height:170px;display:block;}
     <button class="btn" id="resetProg" style="color:var(--danger);">メニューを初期設定に戻す</button>
   </section>
 
-  <div class="ver" id="ver">v14</div>
+  <div class="ver" id="ver">v15</div>
 </div>
 
 <div class="timer" id="timer">
@@ -330,16 +333,16 @@ svg.chart{width:100%;height:170px;display:block;}
       var rec=recommend(ex,scheme,ls);
       var recLine=rec?('<div class="reco">おすすめ <b>'+fmtW(rec.weight)+'kg × '+rec.reps+'回</b>（'+target+'セット）<br><span class="faint">'+rec.note+'</span></div>'):'<div class="reco faint">初回はフォーム重視で余裕をもって。次回から「おすすめ」を出します。</div>';
       var lastT=ts.length?ts[ts.length-1]:null;
+      var prevSet=lastT||(ls&&ls.sets.length?ls.sets[ls.sets.length-1]:null);
       card.innerHTML=head+'<div class="ebody"><div class="prev">'+prev+' <span class="scheme">／ 目安 '+scheme+'</span></div>'+recLine
-        +'<div class="inrow"><div class="ig"><label>重量 (kg)</label><input class="w" type="number" inputmode="decimal" step="2.5" placeholder="kg"'+(rec?' value="'+fmtW(rec.weight)+'"':'')+'></div><span class="x">×</span><div class="ig"><label>回数</label><input class="r" type="number" inputmode="numeric" step="1" placeholder="回"'+(rec?' value="'+rec.reps+'"':'')+'></div><button class="rec" type="button">記録</button></div>'
-        +(lastT?'<button class="again" type="button">同じでもう1セット（'+fmtW(lastT.weight)+'×'+lastT.reps+'）</button>':'')
+        +'<div class="inrow"><div class="ig"><label>重量 (kg)</label><div class="iginput"><input class="w" type="number" inputmode="decimal" step="2.5" placeholder="kg"'+(rec?' value="'+fmtW(rec.weight)+'"':'')+'>'+(prevSet?'<button class="recall rw" type="button" aria-label="前のセットの重量を入力">↪</button>':'')+'</div></div><span class="x">×</span><div class="ig"><label>回数</label><div class="iginput"><input class="r" type="number" inputmode="numeric" step="1" placeholder="回"'+(rec?' value="'+rec.reps+'"':'')+'>'+(prevSet?'<button class="recall rr" type="button" aria-label="前のセットの回数を入力">↪</button>':'')+'</div></div><button class="rec" type="button">記録</button></div>'
         +'<div class="restrow"><span class="rlab">休憩</span><button class="rminus" type="button">−15</button><span class="rsec">'+rest+'秒</span><button class="rplus" type="button">＋15</button><button class="rstart" type="button">▶ 開始</button></div>'
         +'<div class="sets"></div><button class="exdel" type="button">この種目をメニューから削除</button></div>';
       card.querySelector('.ehead').addEventListener('click',function(){openEx=null;renderRec();});
       var wI=card.querySelector('.w'),rI=card.querySelector('.r');
       function logSet(w,r){if(!(w>0)||!(r>0))return false;var priorE=e1rmBest(ex),priorW=maxWeight(ex);S.logs.push({date:today,exercise:ex,setNo:todaySets(ex).length+1,weight:w,reps:r});save();renderRec();var newE=e1rm(w,r);if((priorE>0&&newE>priorE+0.01)||(priorW>0&&w>priorW))celebratePR(ex,newE,priorE,w,priorW);return true;}
       card.querySelector('.rec').addEventListener('click',function(){var w=parseFloat(wI.value),r=parseInt(rI.value,10);if(!logSet(w,r))wI.focus();});
-      if(lastT)card.querySelector('.again').addEventListener('click',function(){logSet(lastT.weight,lastT.reps);});
+      if(prevSet){var rwB=card.querySelector('.rw'),rrB=card.querySelector('.rr');if(rwB)rwB.addEventListener('click',function(){wI.value=fmtW(prevSet.weight);});if(rrB)rrB.addEventListener('click',function(){rI.value=prevSet.reps;});}
       function setRest(v){row[1]=Math.max(15,v);save();renderRec();}
       card.querySelector('.rminus').addEventListener('click',function(){setRest(rest-15);});
       card.querySelector('.rplus').addEventListener('click',function(){setRest(rest+15);});
@@ -367,10 +370,10 @@ svg.chart{width:100%;height:170px;display:block;}
   function scheduleAlarm(sec){var a=getAC();cancelAlarm();if(!a)return;alarmNodes=[];var t0=a.currentTime+Math.max(0.05,sec);for(var i=0;i<6;i++){try{var o=a.createOscillator(),g=a.createGain();o.type='sine';o.frequency.value=(i%2)?1175:880;var st=t0+i*0.32;g.gain.setValueAtTime(0.0001,st);g.gain.exponentialRampToValueAtTime(0.6,st+0.02);g.gain.exponentialRampToValueAtTime(0.0001,st+0.28);o.connect(g);g.connect(a.destination);o.start(st);o.stop(st+0.31);alarmNodes.push(o);}catch(e){}}alarmScheduled=true;}
   function notifyEnd(){try{if('Notification' in window&&Notification.permission==='granted'&&navigator.serviceWorker&&navigator.serviceWorker.ready){navigator.serviceWorker.ready.then(function(reg){reg.showNotification('休憩おわり！',{body:'次のセットへ',tag:'rest'});}).catch(function(){});}}catch(e){}}
   var alarmEl=document.getElementById('alarm');
-  function unlockAudio(){getAC();if(alarmEl){try{alarmEl.muted=true;var p=alarmEl.play();if(p&&p.then)p.then(function(){alarmEl.pause();alarmEl.currentTime=0;alarmEl.muted=false;}).catch(function(){alarmEl.muted=false;});}catch(e){}}}
+  function unlockAudio(){getAC();if(alarmEl){try{alarmEl.muted=true;var p=alarmEl.play();if(p&&p.then)p.then(function(){alarmEl.pause();alarmEl.currentTime=0;}).catch(function(){});}catch(e){}}}
   document.addEventListener('touchend',unlockAudio,{once:true});
   document.addEventListener('click',unlockAudio,{once:true});
-  function playAlarmEl(){var ok=false;if(alarmEl){try{alarmEl.currentTime=0;var p=alarmEl.play();ok=true;if(p&&p.catch)p.catch(function(){beep();});}catch(e){ok=false;}}if(!ok)beep();}
+  function playAlarmEl(){var ok=false;if(alarmEl){try{alarmEl.muted=false;alarmEl.currentTime=0;var p=alarmEl.play();ok=true;if(p&&p.catch)p.catch(function(){beep();});}catch(e){ok=false;}}if(!ok)beep();}
   var WORKER_URL='https://trelog-push.ryoji-kakizaki.workers.dev';
   var VAPID_PUBLIC='BO7Kz8ZOG-WonPORzmrAPxDYnz8kGtKORx9HWpO3gRvcE5vqZZmfvH9FqqKOMsUHm6nci93tnrFWKM3JuJsLB94';
   var pushSub=null,pushId=localStorage.getItem('pushId')||(crypto.randomUUID?crypto.randomUUID():String(Date.now())+Math.round(Math.random()*1e9));
