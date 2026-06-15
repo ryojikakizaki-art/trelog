@@ -199,7 +199,7 @@ svg.chart{width:100%;height:170px;display:block;}
     <button class="btn" id="resetProg" style="color:var(--danger);">メニューを初期設定に戻す</button>
   </section>
 
-  <div class="ver" id="ver">v4</div>
+  <div class="ver" id="ver">v5</div>
 </div>
 
 <nav class="tabs" id="tabs"></nav>
@@ -289,17 +289,24 @@ svg.chart{width:100%;height:170px;display:block;}
   document.getElementById('memo').addEventListener('input',function(){S.notes[today]=this.value;save();});
 
   var tId=null,endAt=0,total=0,wake=null;
+  var ac=null,silentSrc=null,alarmNodes=null,alarmScheduled=false,kaStopT=null;
   var tEl=document.getElementById('timer'),tnum=document.getElementById('tnum'),tbar=document.getElementById('tbar'),tlabel=document.getElementById('tlabel'),tex=document.getElementById('tex'),tchip=document.getElementById('tchip');
   function mmss(s){var m=Math.floor(s/60),x=s%60;return m+':'+(x<10?'0':'')+x;}
   function reqWake(){try{if('wakeLock' in navigator)navigator.wakeLock.request('screen').then(function(w){wake=w;}).catch(function(){});}catch(e){}}
   function relWake(){try{if(wake){wake.release();wake=null;}}catch(e){}}
+  function getAC(){if(!ac){try{ac=new (window.AudioContext||window.webkitAudioContext)();}catch(e){}}if(ac&&ac.state==='suspended'){try{ac.resume();}catch(e){}}return ac;}
+  function keepAliveStart(){var a=getAC();if(!a||silentSrc)return;try{var buf=a.createBuffer(1,a.sampleRate,a.sampleRate);var d=buf.getChannelData(0);for(var i=0;i<d.length;i++)d[i]=Math.sin(i*0.02)*0.0006;silentSrc=a.createBufferSource();silentSrc.buffer=buf;silentSrc.loop=true;silentSrc.connect(a.destination);silentSrc.start();}catch(e){}}
+  function keepAliveStop(){try{if(silentSrc){silentSrc.stop();silentSrc.disconnect();silentSrc=null;}}catch(e){}}
+  function cancelAlarm(){if(alarmNodes){alarmNodes.forEach(function(o){try{o.stop();}catch(e){}});alarmNodes=null;}alarmScheduled=false;}
+  function scheduleAlarm(sec){var a=getAC();cancelAlarm();if(!a)return;alarmNodes=[];var t0=a.currentTime+Math.max(0.05,sec);for(var i=0;i<6;i++){try{var o=a.createOscillator(),g=a.createGain();o.type='sine';o.frequency.value=(i%2)?1175:880;var st=t0+i*0.32;g.gain.setValueAtTime(0.0001,st);g.gain.exponentialRampToValueAtTime(0.6,st+0.02);g.gain.exponentialRampToValueAtTime(0.0001,st+0.28);o.connect(g);g.connect(a.destination);o.start(st);o.stop(st+0.31);alarmNodes.push(o);}catch(e){}}alarmScheduled=true;}
+  function notifyEnd(){try{if('Notification' in window&&Notification.permission==='granted'&&navigator.serviceWorker&&navigator.serviceWorker.ready){navigator.serviceWorker.ready.then(function(reg){reg.showNotification('休憩おわり！',{body:'次のセットへ',tag:'rest'});}).catch(function(){});}}catch(e){}}
   function tick(){var rem=Math.max(0,Math.round((endAt-Date.now())/1000));tnum.textContent=mmss(rem);tchip.textContent='休憩 '+mmss(rem);tbar.style.width=(total?Math.round(rem/total*100):0)+'%';
-    if(rem<=0){clearInterval(tId);tId=null;tEl.classList.add('done');tchip.classList.add('done');tlabel.textContent='休憩おわり！次のセットへ';tchip.textContent='休憩おわり';beep();relWake();}}
-  function startTimer(sec,ex){if(tId)clearInterval(tId);total=sec;endAt=Date.now()+sec*1000;tEl.style.display='block';tEl.classList.remove('done');tchip.classList.remove('done');tchip.style.display='block';tlabel.textContent='休憩';tex.textContent=ex;reqWake();tick();tId=setInterval(tick,250);}
+    if(rem<=0){clearInterval(tId);tId=null;tEl.classList.add('done');tchip.classList.add('done');tlabel.textContent='休憩おわり！次のセットへ';tchip.textContent='休憩おわり';if(!alarmScheduled)beep();else if(navigator.vibrate)navigator.vibrate([300,120,300]);relWake();notifyEnd();if(kaStopT)clearTimeout(kaStopT);kaStopT=setTimeout(keepAliveStop,5000);}}
+  function startTimer(sec,ex){if(tId)clearInterval(tId);if(kaStopT){clearTimeout(kaStopT);kaStopT=null;}total=sec;endAt=Date.now()+sec*1000;tEl.style.display='block';tEl.classList.remove('done');tchip.classList.remove('done');tchip.style.display='block';tlabel.textContent='休憩中・裏でも鳴ります';tex.textContent=ex;reqWake();keepAliveStart();scheduleAlarm(sec);if('Notification' in window&&Notification.permission==='default'){try{Notification.requestPermission();}catch(e){}}tick();tId=setInterval(tick,250);}
   function beep(){try{var A=window.AudioContext||window.webkitAudioContext,a=new A(),o=a.createOscillator(),g=a.createGain();o.connect(g);g.connect(a.destination);o.type='sine';o.frequency.value=880;g.gain.value=0.14;o.start();setTimeout(function(){o.frequency.value=1175;},170);setTimeout(function(){o.stop();a.close();},520);}catch(e){}if(navigator.vibrate)navigator.vibrate([300,120,300]);}
-  document.getElementById('tadd').addEventListener('click',function(){endAt+=30000;total+=30;if(!tId){tEl.classList.remove('done');tchip.classList.remove('done');reqWake();tId=setInterval(tick,250);}tick();});
-  document.getElementById('tskip').addEventListener('click',function(){if(tId)clearInterval(tId);tId=null;tEl.style.display='none';tchip.style.display='none';relWake();});
-  document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible'&&tId)reqWake();});
+  document.getElementById('tadd').addEventListener('click',function(){endAt+=30000;total+=30;var rem=Math.max(0,Math.round((endAt-Date.now())/1000));keepAliveStart();scheduleAlarm(rem);if(!tId){tEl.classList.remove('done');tchip.classList.remove('done');reqWake();tId=setInterval(tick,250);}tick();});
+  document.getElementById('tskip').addEventListener('click',function(){if(tId)clearInterval(tId);tId=null;tEl.style.display='none';tchip.style.display='none';cancelAlarm();keepAliveStop();relWake();});
+  document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible'){if(ac&&ac.state==='suspended'){try{ac.resume();}catch(e){}}if(tId)reqWake();}});
 
   function buildExport(from){
     var ds=[];for(var i=0;i<(from==='7'?7:1);i++){ds.push(new Date(Date.now()-i*86400000).toISOString().slice(0,10));}

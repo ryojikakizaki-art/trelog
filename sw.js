@@ -1,4 +1,4 @@
-var C = 'trelog-v4';
+var C = 'trelog-v5';
 var ASSETS = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png'];
 self.addEventListener('install', function (e) {
   e.waitUntil(caches.open(C).then(function (c) { return c.addAll(ASSETS); }));
@@ -17,4 +17,11 @@ self.addEventListener('fetch', function (e) {
       return r || fetch(e.request).catch(function () { return caches.match('./index.html'); });
     })
   );
+});
+self.addEventListener('notificationclick', function (e) {
+  e.notification.close();
+  e.waitUntil(self.clients.matchAll({ type: 'window' }).then(function (cs) {
+    for (var i = 0; i < cs.length; i++) { if ('focus' in cs[i]) return cs[i].focus(); }
+    if (self.clients.openWindow) return self.clients.openWindow('./');
+  }));
 });
