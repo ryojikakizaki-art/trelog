@@ -182,6 +182,44 @@ svg.chart{width:100%;height:170px;display:block;}
     </div>
   </section>
 
+  <section id="view-body" class="hide">
+    <h2>今週のカラダ <span id="bodyWeek" class="faint"></span></h2>
+    <div class="card" style="padding:8px;">
+      <svg id="bodySvg" viewBox="0 0 300 312" style="width:100%;height:auto;display:block;">
+        <circle cx="80" cy="28" r="14" fill="#d3d1c7"/><rect x="74" y="40" width="12" height="8" rx="3" fill="#d3d1c7"/>
+        <ellipse data-m="delts" cx="54" cy="60" rx="13" ry="11" fill="#e5e7eb"/><ellipse data-m="delts" cx="106" cy="60" rx="13" ry="11" fill="#e5e7eb"/>
+        <ellipse data-m="chest" cx="66" cy="80" rx="14" ry="11" fill="#e5e7eb"/><ellipse data-m="chest" cx="94" cy="80" rx="14" ry="11" fill="#e5e7eb"/>
+        <ellipse data-m="biceps" cx="40" cy="94" rx="8" ry="16" fill="#e5e7eb"/><ellipse data-m="biceps" cx="120" cy="94" rx="8" ry="16" fill="#e5e7eb"/>
+        <ellipse data-m="forearms" cx="34" cy="126" rx="7" ry="16" fill="#e5e7eb"/><ellipse data-m="forearms" cx="126" cy="126" rx="7" ry="16" fill="#e5e7eb"/>
+        <rect data-m="abs" x="66" y="94" width="28" height="54" rx="7" fill="#e5e7eb"/>
+        <rect data-m="quads" x="57" y="152" width="18" height="62" rx="9" fill="#e5e7eb"/><rect data-m="quads" x="85" y="152" width="18" height="62" rx="9" fill="#e5e7eb"/>
+        <rect x="60" y="218" width="13" height="48" rx="6" fill="#d3d1c7"/><rect x="87" y="218" width="13" height="48" rx="6" fill="#d3d1c7"/>
+        <text x="80" y="292" text-anchor="middle" font-size="11" fill="#9ca3af">前</text>
+        <circle cx="240" cy="28" r="14" fill="#d3d1c7"/><rect x="234" y="40" width="12" height="8" rx="3" fill="#d3d1c7"/>
+        <rect data-m="traps" x="222" y="50" width="36" height="16" rx="6" fill="#e5e7eb"/>
+        <ellipse data-m="delts" cx="214" cy="62" rx="12" ry="10" fill="#e5e7eb"/><ellipse data-m="delts" cx="266" cy="62" rx="12" ry="10" fill="#e5e7eb"/>
+        <rect data-m="back" x="223" y="68" width="15" height="42" rx="6" fill="#e5e7eb"/><rect data-m="back" x="242" y="68" width="15" height="42" rx="6" fill="#e5e7eb"/>
+        <ellipse data-m="triceps" cx="200" cy="94" rx="8" ry="16" fill="#e5e7eb"/><ellipse data-m="triceps" cx="280" cy="94" rx="8" ry="16" fill="#e5e7eb"/>
+        <ellipse data-m="forearms" cx="194" cy="126" rx="7" ry="16" fill="#e5e7eb"/><ellipse data-m="forearms" cx="286" cy="126" rx="7" ry="16" fill="#e5e7eb"/>
+        <rect data-m="lowerback" x="228" y="112" width="24" height="16" rx="5" fill="#e5e7eb"/>
+        <ellipse data-m="glutes" cx="231" cy="142" rx="12" ry="11" fill="#e5e7eb"/><ellipse data-m="glutes" cx="249" cy="142" rx="12" ry="11" fill="#e5e7eb"/>
+        <rect data-m="hamstrings" x="221" y="155" width="17" height="48" rx="8" fill="#e5e7eb"/><rect data-m="hamstrings" x="243" y="155" width="17" height="48" rx="8" fill="#e5e7eb"/>
+        <ellipse data-m="calves" cx="229" cy="232" rx="8" ry="16" fill="#e5e7eb"/><ellipse data-m="calves" cx="251" cy="232" rx="8" ry="16" fill="#e5e7eb"/>
+        <text x="240" y="292" text-anchor="middle" font-size="11" fill="#9ca3af">後</text>
+      </svg>
+      <div id="muscleInfo" style="text-align:center;font-size:13px;color:var(--muted);min-height:18px;"></div>
+    </div>
+    <div class="card">
+      <div class="muted" style="font-size:13px;margin-bottom:6px;">今週まだ鍛えていない部位</div>
+      <div id="undertrained" style="font-weight:600;"></div>
+    </div>
+    <div class="card">
+      <div class="muted" style="font-size:13px;margin-bottom:8px;">種目をタップ → 効く筋肉が光る（<span id="bodyDayLabel"></span>）</div>
+      <div id="exChips" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
+    </div>
+    <div class="faint" style="text-align:center;margin-top:6px;line-height:1.6;">色：薄いほど未・濃いほど今週よく鍛えた。<br>日曜の夜に自動リセット（月曜から新しい週）。</div>
+  </section>
+
   <section id="view-set" class="hide">
     <h2>設定（メニュー・休憩秒数）</h2>
     <div class="card">
@@ -200,7 +238,7 @@ svg.chart{width:100%;height:170px;display:block;}
     <button class="btn" id="resetProg" style="color:var(--danger);">メニューを初期設定に戻す</button>
   </section>
 
-  <div class="ver" id="ver">v8</div>
+  <div class="ver" id="ver">v9</div>
 </div>
 
 <nav class="tabs" id="tabs"></nav>
@@ -471,13 +509,48 @@ svg.chart{width:100%;height:170px;display:block;}
   document.getElementById('addEx').addEventListener('click',function(){var n=document.getElementById('newEx').value.trim(),r=parseInt(document.getElementById('newRest').value,10);if(!n)return;S.program[setDay.value].push([n,(r>=0?r:90),'']);save();document.getElementById('newEx').value='';document.getElementById('newRest').value='';renderSet();renderRec();});
   document.getElementById('resetProg').addEventListener('click',function(){if(confirm('メニューを初期設定に戻しますか？（記録データは消えません）')){S.program=JSON.parse(JSON.stringify(DEFAULT_PROGRAM));save();fillDaySel(daySel);renderSet();renderRec();}});
 
-  var TABS=[['rec','記録','M4 7h16M4 12h16M4 17h10'],['kcal','カロリー','M5 12a7 7 0 1 0 14 0 7 7 0 1 0-14 0M12 7v5l3 2'],['cal','カレンダー','M4 6h16v14H4zM4 10h16M8 3v4M16 3v4'],['graph','グラフ','M4 19V5M4 19h16M8 15l3-4 3 2 4-6'],['set','設定','M5 7h14M5 12h14M5 17h14']];
+  var MNAME={chest:'胸',delts:'肩',biceps:'二頭',triceps:'三頭',forearms:'前腕',back:'背中',traps:'僧帽',lowerback:'下背',abs:'腹',glutes:'臀',quads:'大腿',hamstrings:'ハム',calves:'カーフ'};
+  var MAJORS=['chest','delts','back','biceps','triceps','abs','quads','hamstrings','glutes','calves'];
+  function musclesFor(name){var n=name||'';function has(){for(var i=0;i<arguments.length;i++){if(n.indexOf(arguments[i])>-1)return true;}return false;}var m=[];
+    if(has('ベンチ','チェスト','ディップ','腕立','プッシュアップ'))m.push('chest','triceps','delts');
+    if(has('インクライン'))m.push('chest','delts');
+    if(has('フライ','ペック'))m.push('chest');
+    if(has('ショルダー','OHP','ミリタリー','オーバーヘッド'))m.push('delts','triceps');
+    if(has('サイドレイズ','レイズ','リアデルト','フェイスプル','デルト'))m.push('delts');
+    if(has('プレスダウン','トライセプス','三頭','スカル','キックバック','クローズグリップ'))m.push('triceps');
+    if(has('デッドリフト'))m.push('back','hamstrings','glutes');
+    if((has('ロー','ローイング')&&n.indexOf('ローラー')<0)||has('ラットプル','プルダウン','プルアップ','懸垂','チンニング','背中','ベントオーバー'))m.push('back','biceps');
+    if(has('シュラッグ','僧帽'))m.push('traps');
+    if(has('カール','二頭','バイセップ')&&!has('レッグカール'))m.push('biceps');
+    if(has('ハンマー','リスト','前腕','グリップ'))m.push('forearms');
+    if(has('スクワット','レッグプレス','ランジ','ハック','エクステンション'))m.push('quads','glutes');
+    if(has('レッグカール','ハム','ルーマニアン','RDL','スティフ'))m.push('hamstrings','glutes');
+    if(has('ヒップスラスト','臀','グルート'))m.push('glutes');
+    if(has('カーフ','ふくらはぎ','カフレイズ'))m.push('calves');
+    if(has('腹筋','アブ','クランチ','ローラー','プランク','レッグレイズ','シットアップ'))m.push('abs');
+    var seen={},out=[];m.forEach(function(x){if(!seen[x]){seen[x]=1;out.push(x);}});return out;}
+  function weekStart(){var d=new Date(today+'T00:00:00');var w=d.getDay();d.setDate(d.getDate()-(w===0?6:w-1));return d.toISOString().slice(0,10);}
+  function weekSets(){var ws=weekStart(),by={};S.logs.filter(function(l){return l.date>=ws&&l.date<=today;}).forEach(function(l){musclesFor(l.exercise).forEach(function(mm){by[mm]=(by[mm]||0)+1;});});return by;}
+  function muscleColor(s){if(!s)return '#e5e7eb';if(s<=3)return '#cfe6b8';if(s<=7)return '#9cc472';if(s<=11)return '#639922';return '#3b6d11';}
+  function highlightMuscles(keys){var svg=document.getElementById('bodySvg');if(!svg)return;Array.prototype.forEach.call(svg.querySelectorAll('[data-m]'),function(el){el.style.stroke='';el.style.strokeWidth='';});(keys||[]).forEach(function(k){Array.prototype.forEach.call(svg.querySelectorAll('[data-m="'+k+'"]'),function(el){el.style.stroke='#b8860b';el.style.strokeWidth='3';});});}
+  function renderBody(){
+    var ws=weekStart();document.getElementById('bodyWeek').textContent='（'+ws.slice(5)+'〜の週）';
+    var by=weekSets();var svg=document.getElementById('bodySvg');
+    Array.prototype.forEach.call(svg.querySelectorAll('[data-m]'),function(el){var k=el.getAttribute('data-m');el.style.fill=muscleColor(by[k]||0);el.style.stroke='';el.style.strokeWidth='';el.style.cursor='pointer';el.onclick=function(){document.getElementById('muscleInfo').textContent=MNAME[k]+'：今週 '+(by[k]||0)+'セット';highlightMuscles([k]);};});
+    var miss=MAJORS.filter(function(k){return !by[k];}).map(function(k){return MNAME[k];});
+    document.getElementById('undertrained').innerHTML=miss.length?('<span style="color:var(--danger);">'+miss.join('・')+'</span>'):'<span style="color:#0f6e56;">なし — 全身バランスよく鍛えています</span>';
+    document.getElementById('muscleInfo').textContent='';
+    var day=daySel.value;document.getElementById('bodyDayLabel').textContent=day.split('（')[0];
+    var chips=document.getElementById('exChips');chips.innerHTML='';
+    (S.program[day]||[]).forEach(function(row){var ex=row[0];var b=document.createElement('button');b.className='btn sm';b.textContent=ex;b.addEventListener('click',function(){var ks=musclesFor(ex);highlightMuscles(ks);document.getElementById('muscleInfo').textContent=ex+' → '+(ks.length?ks.map(function(k){return MNAME[k];}).join('・'):'—');});chips.appendChild(b);});
+  }
+  var TABS=[['rec','記録','M4 7h16M4 12h16M4 17h10'],['kcal','カロリー','M5 12a7 7 0 1 0 14 0 7 7 0 1 0-14 0M12 7v5l3 2'],['cal','暦','M4 6h16v14H4zM4 10h16M8 3v4M16 3v4'],['graph','グラフ','M4 19V5M4 19h16M8 15l3-4 3 2 4-6'],['body','カラダ','M12 9a4 4 0 1 0 0-8 4 4 0 0 0 0 8M5 21a7 7 0 0 1 14 0'],['set','設定','M5 7h14M5 12h14M5 17h14']];
   var nav=document.getElementById('tabs');
   TABS.forEach(function(t){var b=document.createElement('button');b.className='tab';b.id='tab-'+t[0];b.innerHTML='<svg class="ic" viewBox="0 0 24 24"><path d="'+t[2]+'"/></svg>'+t[1];b.addEventListener('click',function(){go(t[0]);});nav.appendChild(b);});
   function go(v){
-    ['rec','kcal','cal','graph','set'].forEach(function(x){document.getElementById('view-'+x).classList.toggle('hide',x!==v);document.getElementById('tab-'+x).classList.toggle('active',x===v);});
+    ['rec','kcal','cal','graph','body','set'].forEach(function(x){document.getElementById('view-'+x).classList.toggle('hide',x!==v);document.getElementById('tab-'+x).classList.toggle('active',x===v);});
     document.querySelector('header').style.display=(v==='rec')?'flex':'none';
-    if(v==='kcal')renderKcal();if(v==='cal')renderCal();if(v==='graph')renderGraph();if(v==='set')renderSet();
+    if(v==='kcal')renderKcal();if(v==='cal')renderCal();if(v==='graph')renderGraph();if(v==='body')renderBody();if(v==='set')renderSet();
   }
   window.go=go;
 
