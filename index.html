@@ -50,6 +50,8 @@ button{cursor:pointer;}
 .btn.sm{padding:6px 10px;font-size:13px;}
 .tchip{position:fixed;top:calc(env(safe-area-inset-top) + 8px);left:50%;transform:translateX(-50%);z-index:30;background:var(--rest);color:#fff;border-radius:999px;padding:8px 16px;font-weight:700;font-variant-numeric:tabular-nums;display:none;box-shadow:0 2px 10px rgba(0,0,0,.15);}
 .tchip.done{background:var(--danger);}
+#toast{position:fixed;top:calc(env(safe-area-inset-top) + 8px);left:50%;transform:translateX(-50%);z-index:120;display:none;background:#0f6e56;color:#fff;padding:12px 18px;border-radius:14px;font-size:14px;line-height:1.55;text-align:center;max-width:90%;box-shadow:0 4px 16px rgba(0,0,0,.2);transition:opacity .4s;}
+#toast b{font-size:17px;}
 .timer{background:var(--rest-bg);border:1px solid #bfe6d7;border-radius:14px;padding:12px 14px;margin-bottom:12px;display:none;}
 .timer.done{background:#fde0e0;border-color:#f3b6b6;}
 .tr1{display:flex;align-items:center;justify-content:space-between;font-size:13px;color:var(--rest);font-weight:600;}
@@ -91,6 +93,7 @@ svg.chart{width:100%;height:170px;display:block;}
 </head>
 <body>
 <div id="tchip" class="tchip" onclick="go('rec')"></div>
+<div id="toast"></div>
 <div class="wrap">
   <header>
     <div class="brand"><span class="dot"></span>トレ記録</div>
@@ -196,7 +199,7 @@ svg.chart{width:100%;height:170px;display:block;}
     <button class="btn" id="resetProg" style="color:var(--danger);">メニューを初期設定に戻す</button>
   </section>
 
-  <div class="ver" id="ver">v3</div>
+  <div class="ver" id="ver">v4</div>
 </div>
 
 <nav class="tabs" id="tabs"></nav>
@@ -243,6 +246,13 @@ svg.chart{width:100%;height:170px;display:block;}
       return{weight:tw,reps:Math.min(rr+1,ps.hi),note:'前回'+fmtW(tw)+'kg×'+rr+' → 同じ重さで+1回めざす'};}
     if(/ベンチ/.test(ex)){var w=round25(100*repPct(ps.lo));return{weight:w,reps:ps.lo,note:'ベンチ100kg基準（'+ps.lo+'回≈'+Math.round(repPct(ps.lo)*100)+'%）'};}
     return null;}
+  function e1rm(w,r){return w*(1+r/30);}
+  function e1rmBest(ex){var m=0;S.logs.filter(function(l){return l.exercise===ex;}).forEach(function(l){var e=e1rm(l.weight,l.reps);if(e>m)m=e;});return m;}
+  function maxWeight(ex){var m=0;S.logs.filter(function(l){return l.exercise===ex;}).forEach(function(l){if(l.weight>m)m=l.weight;});return m;}
+  function confetti(){var c=document.createElement('canvas');c.style.cssText='position:fixed;inset:0;pointer-events:none;z-index:110;';c.width=window.innerWidth;c.height=window.innerHeight;document.body.appendChild(c);var x=c.getContext('2d');var cols=['#d4af37','#0f6e56','#e24b4a','#378add','#f0997b'];var ps=[];for(var i=0;i<90;i++){ps.push({x:Math.random()*c.width,y:-20-Math.random()*c.height*0.3,vx:(Math.random()-0.5)*3,vy:2+Math.random()*4,s:5+Math.random()*6,col:cols[i%cols.length],rot:Math.random()*6,vr:(Math.random()-0.5)*0.3});}var t0=performance.now();function fr(now){var el=now-t0;x.clearRect(0,0,c.width,c.height);ps.forEach(function(p){p.x+=p.vx;p.y+=p.vy;p.vy+=0.05;p.rot+=p.vr;x.save();x.translate(p.x,p.y);x.rotate(p.rot);x.globalAlpha=Math.max(0,1-el/2300);x.fillStyle=p.col;x.fillRect(-p.s/2,-p.s/2,p.s,p.s*0.6);x.restore();});if(el<2300)requestAnimationFrame(fr);else c.remove();}requestAnimationFrame(fr);}
+  function cheer(){try{var A=window.AudioContext||window.webkitAudioContext,a=new A();[660,880,1175].forEach(function(f,i){var o=a.createOscillator(),g=a.createGain();o.connect(g);g.connect(a.destination);o.type='triangle';o.frequency.value=f;g.gain.value=0.12;o.start(a.currentTime+i*0.12);o.stop(a.currentTime+i*0.12+0.13);});setTimeout(function(){a.close();},800);}catch(e){}if(navigator.vibrate)navigator.vibrate([60,40,60,40,140]);}
+  function toast(html){var t=document.getElementById('toast');t.innerHTML=html;t.style.display='block';t.style.opacity='1';if(t._t)clearTimeout(t._t);t._t=setTimeout(function(){t.style.opacity='0';setTimeout(function(){t.style.display='none';},400);},4500);}
+  function celebratePR(ex,newE,priorE,w,priorW){confetti();cheer();var prE=priorE>0&&newE>priorE+0.01,prW=priorW>0&&w>priorW;var msg='🎉 自己ベスト更新！<br><b>'+ex+'</b>';if(prE)msg+='<br>推定1RM <b>'+Math.round(newE)+'kg</b>（前 '+Math.round(priorE)+'kg）';if(prW)msg+='<br>最高重量 <b>'+fmtW(w)+'kg</b>';if(/ベンチ/.test(ex)){var best=Math.max(newE,priorE);var rem=140-Math.round(best);msg+=rem>0?('<br>🎯 ベンチ140kgまであと '+rem+'kg'):'<br>🔥 140kg到達圏！';}toast(msg);}
   function renderRec(){
     var list=document.getElementById('list');list.innerHTML='';
     (S.program[daySel.value]||[]).forEach(function(row){
@@ -251,9 +261,10 @@ svg.chart{width:100%;height:170px;display:block;}
       var card=document.createElement('div');card.className='card';
       var prev=ls?('前回 '+days(ls.date)+'：<b>'+ls.sets.map(function(s){return fmtW(s.weight)+'×'+s.reps;}).join(', ')+'</b>'):'前回の記録なし';
       var rec=recommend(ex,scheme,ls);
+      var be=e1rmBest(ex);
       var recLine=rec?('<div class="reco">おすすめ <b>'+fmtW(rec.weight)+'kg × '+rec.reps+'回</b>（'+parseScheme(scheme).sets+'セット）<br><span class="faint">'+rec.note+'</span></div>'):'<div class="reco faint">初回はフォーム重視で余裕をもって。次回から「おすすめ」を出します。</div>';
       card.innerHTML='<div class="ctop"><span class="exname">'+ex+'</span><span class="rest">休憩 '+rest+'秒</span></div>'
-        +'<div class="prev">'+prev+' <span class="scheme">／ 目安 '+scheme+'</span></div>'
+        +'<div class="prev">'+prev+' <span class="scheme">／ 目安 '+scheme+'</span>'+(be>0?'<br><span class="muted">推定1RM <b>'+Math.round(be)+'kg</b></span>':'')+'</div>'
         +recLine
         +'<div class="inrow">'
         +'<div class="ig"><label>重量 (kg)</label><input class="w" type="number" inputmode="decimal" step="2.5" placeholder="kg"'+(rec?' value="'+fmtW(rec.weight)+'"':'')+'></div>'
@@ -263,7 +274,10 @@ svg.chart{width:100%;height:170px;display:block;}
       var wI=card.querySelector('.w'),rI=card.querySelector('.r');
       card.querySelector('.rec').addEventListener('click',function(){
         var w=parseFloat(wI.value),r=parseInt(rI.value,10);if(!(w>0)||!(r>0)){wI.focus();return;}
+        var priorE=e1rmBest(ex),priorW=maxWeight(ex);
         S.logs.push({date:today,exercise:ex,setNo:todaySets(ex).length+1,weight:w,reps:r});save();startTimer(rest,ex);renderRec();
+        var newE=e1rm(w,r);
+        if((priorE>0&&newE>priorE+0.01)||(priorW>0&&w>priorW))celebratePR(ex,newE,priorE,w,priorW);
       });
       var sc=card.querySelector('.sets');
       ts.forEach(function(s){var c=document.createElement('span');c.className='chip';c.innerHTML='<b>'+s.setNo+')</b> '+fmtW(s.weight)+'kg×'+s.reps+' <span class="del">×</span>';
@@ -385,8 +399,8 @@ svg.chart{width:100%;height:170px;display:block;}
 
   function series(metric){
     if(metric==='__bw'){return S.body.slice().sort(function(a,b){return a.date<b.date?-1:1;}).map(function(b){return{date:b.date,v:b.weight};});}
-    var byDate={};S.logs.filter(function(l){return l.exercise===metric;}).forEach(function(l){if(!byDate[l.date]||l.weight>byDate[l.date])byDate[l.date]=l.weight;});
-    return Object.keys(byDate).sort().map(function(d){return{date:d,v:byDate[d]};});
+    var byDate={};S.logs.filter(function(l){return l.exercise===metric;}).forEach(function(l){var e=e1rm(l.weight,l.reps);if(!byDate[l.date]||e>byDate[l.date])byDate[l.date]=e;});
+    return Object.keys(byDate).sort().map(function(d){return{date:d,v:Math.round(byDate[d])};});
   }
   function renderGraphSel(){
     var sel=document.getElementById('graphSel');var cur=sel.value;sel.innerHTML='';
@@ -411,7 +425,8 @@ svg.chart{width:100%;height:170px;display:block;}
       +'<text x="'+(W-pad)+'" y="'+(H-pad+12)+'" font-size="10" fill="#9ca3af" text-anchor="end">'+data[data.length-1].date.slice(5)+'</text></svg>';
     box.innerHTML=svg;
     var ch=data[data.length-1].v-data[0].v;
-    stat.textContent='最新 '+fmtW(data[data.length-1].v)+(sel.value==='__bw'?'kg':'kg')+' ／ 期間変化 '+(ch>=0?'+':'')+fmtW(ch)+'kg（'+data.length+'回）';
+    var unit=sel.value==='__bw'?'体重':'推定1RM';
+    stat.textContent=unit+' 最新 '+fmtW(data[data.length-1].v)+'kg ／ 期間変化 '+(ch>=0?'+':'')+fmtW(ch)+'kg（'+data.length+'回）';
   }
   document.getElementById('graphSel').addEventListener('change',renderGraph);
 
