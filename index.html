@@ -200,7 +200,7 @@ svg.chart{width:100%;height:170px;display:block;}
     <button class="btn" id="resetProg" style="color:var(--danger);">メニューを初期設定に戻す</button>
   </section>
 
-  <div class="ver" id="ver">v6</div>
+  <div class="ver" id="ver">v7</div>
 </div>
 
 <nav class="tabs" id="tabs"></nav>
@@ -306,12 +306,20 @@ svg.chart{width:100%;height:170px;display:block;}
   document.addEventListener('touchend',unlockAudio,{once:true});
   document.addEventListener('click',unlockAudio,{once:true});
   function playAlarmEl(){var ok=false;if(alarmEl){try{alarmEl.currentTime=0;var p=alarmEl.play();ok=true;if(p&&p.catch)p.catch(function(){beep();});}catch(e){ok=false;}}if(!ok)beep();}
+  var WORKER_URL='https://trelog-push.ryoji-kakizaki.workers.dev';
+  var VAPID_PUBLIC='BO7Kz8ZOG-WonPORzmrAPxDYnz8kGtKORx9HWpO3gRvcE5vqZZmfvH9FqqKOMsUHm6nci93tnrFWKM3JuJsLB94';
+  var pushSub=null,pushId=localStorage.getItem('pushId')||(crypto.randomUUID?crypto.randomUUID():String(Date.now())+Math.round(Math.random()*1e9));
+  localStorage.setItem('pushId',pushId);
+  function urlB64ToUint8(b64){var pad='='.repeat((4-b64.length%4)%4);var s=(b64+pad).replace(/-/g,'+').replace(/_/g,'/');var raw=atob(s);var arr=new Uint8Array(raw.length);for(var i=0;i<raw.length;i++)arr[i]=raw.charCodeAt(i);return arr;}
+  function ensurePush(){if(!('serviceWorker' in navigator)||!('PushManager' in window))return Promise.resolve(null);if(pushSub)return Promise.resolve(pushSub);return navigator.serviceWorker.ready.then(function(reg){return reg.pushManager.getSubscription().then(function(s){if(s){pushSub=s;return s;}if(!('Notification' in window)||Notification.permission!=='granted')return null;return reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:urlB64ToUint8(VAPID_PUBLIC)}).then(function(ns){pushSub=ns;return ns;});});}).catch(function(){return null;});}
+  function schedulePush(sec){ensurePush().then(function(s){if(!s)return;fetch(WORKER_URL+'/schedule',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:pushId,subscription:s,delay:sec})}).catch(function(){});});}
+  function cancelPush(){if(!pushSub)return;fetch(WORKER_URL+'/cancel',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:pushId})}).catch(function(){});}
   function tick(){var rem=Math.max(0,Math.round((endAt-Date.now())/1000));tnum.textContent=mmss(rem);tchip.textContent='休憩 '+mmss(rem);tbar.style.width=(total?Math.round(rem/total*100):0)+'%';
-    if(rem<=0){clearInterval(tId);tId=null;tEl.classList.add('done');tchip.classList.add('done');tlabel.textContent='休憩おわり！次のセットへ';tchip.textContent='休憩おわり';cancelAlarm();playAlarmEl();if(navigator.vibrate)navigator.vibrate([300,120,300,120,300]);relWake();notifyEnd();}}
-  function startTimer(sec,ex){if(tId)clearInterval(tId);if(kaStopT){clearTimeout(kaStopT);kaStopT=null;}total=sec;endAt=Date.now()+sec*1000;tEl.style.display='block';tEl.classList.remove('done');tchip.classList.remove('done');tchip.style.display='block';tlabel.textContent='休憩中';tex.textContent=ex;reqWake();if('Notification' in window&&Notification.permission==='default'){try{Notification.requestPermission();}catch(e){}}tick();tId=setInterval(tick,250);}
+    if(rem<=0){clearInterval(tId);tId=null;tEl.classList.add('done');tchip.classList.add('done');tlabel.textContent='休憩おわり！次のセットへ';tchip.textContent='休憩おわり';cancelAlarm();playAlarmEl();cancelPush();if(navigator.vibrate)navigator.vibrate([300,120,300,120,300]);relWake();notifyEnd();}}
+  function startTimer(sec,ex){if(tId)clearInterval(tId);if(kaStopT){clearTimeout(kaStopT);kaStopT=null;}total=sec;endAt=Date.now()+sec*1000;tEl.style.display='block';tEl.classList.remove('done');tchip.classList.remove('done');tchip.style.display='block';tlabel.textContent='休憩中';tex.textContent=ex;reqWake();schedulePush(sec);if('Notification' in window&&Notification.permission==='default'){try{Notification.requestPermission().then(function(p){if(p==='granted')ensurePush();});}catch(e){}}tick();tId=setInterval(tick,250);}
   function beep(){var a=getAC();if(a){try{var o=a.createOscillator(),g=a.createGain();o.connect(g);g.connect(a.destination);o.type='sine';o.frequency.value=880;g.gain.value=0.4;o.start();setTimeout(function(){try{o.frequency.value=1175;}catch(e){}},170);setTimeout(function(){try{o.stop();}catch(e){}},520);}catch(e){}}if(navigator.vibrate)navigator.vibrate([300,120,300]);}
   document.getElementById('tadd').addEventListener('click',function(){endAt+=30000;total+=30;if(!tId){tEl.classList.remove('done');tchip.classList.remove('done');reqWake();tId=setInterval(tick,250);}tick();});
-  document.getElementById('tskip').addEventListener('click',function(){if(tId)clearInterval(tId);tId=null;tEl.style.display='none';tchip.style.display='none';cancelAlarm();keepAliveStop();relWake();});
+  document.getElementById('tskip').addEventListener('click',function(){if(tId)clearInterval(tId);tId=null;tEl.style.display='none';tchip.style.display='none';cancelAlarm();keepAliveStop();cancelPush();relWake();});
   document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible'){if(ac&&ac.state==='suspended'){try{ac.resume();}catch(e){}}if(tId)reqWake();}});
 
   function buildExport(from){
@@ -475,6 +483,7 @@ svg.chart{width:100%;height:170px;display:block;}
 
   renderRec();go('rec');
   if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(function(){});}
+  if('Notification' in window&&Notification.permission==='granted')ensurePush();
 })();
 </script>
 </body>

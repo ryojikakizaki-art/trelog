@@ -1,4 +1,4 @@
-var C = 'trelog-v6';
+var C = 'trelog-v7';
 var ASSETS = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png'];
 self.addEventListener('install', function (e) {
   e.waitUntil(caches.open(C).then(function (c) { return c.addAll(ASSETS); }));
@@ -17,6 +17,11 @@ self.addEventListener('fetch', function (e) {
       return r || fetch(e.request).catch(function () { return caches.match('./index.html'); });
     })
   );
+});
+self.addEventListener('push', function (e) {
+  e.waitUntil(self.registration.showNotification('休憩おわり！', {
+    body: '次のセットへ', tag: 'rest', renotify: true, vibrate: [300, 120, 300], requireInteraction: false
+  }));
 });
 self.addEventListener('notificationclick', function (e) {
   e.notification.close();
