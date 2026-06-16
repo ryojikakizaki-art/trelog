@@ -310,7 +310,7 @@ svg.chart{width:100%;height:170px;display:block;}
     <button class="btn" id="resetProg" style="color:var(--danger);">メニューを初期設定に戻す</button>
   </section>
 
-  <div class="ver" id="ver">v30</div>
+  <div class="ver" id="ver">v31</div>
 </div>
 
 <div class="timer" id="timer">
@@ -450,7 +450,7 @@ svg.chart{width:100%;height:170px;display:block;}
   function mixAudio(){setAudioType('transient');}
   var unduckT=null;
   function duckOthers(ms){setAudioType('transient-solo');if(unduckT)clearTimeout(unduckT);unduckT=setTimeout(restoreMix,ms||6000);}
-  function restoreMix(){if(unduckT){clearTimeout(unduckT);unduckT=null;}setAudioType('transient');}
+  function restoreMix(){if(unduckT){clearTimeout(unduckT);unduckT=null;}try{if('speechSynthesis' in window)speechSynthesis.cancel();}catch(e){}try{Array.prototype.forEach.call(document.querySelectorAll('audio'),function(el){try{el.pause();el.currentTime=0;}catch(e){}});}catch(e){}setAudioType('transient');try{if(ac&&ac.state==='running'&&ac.suspend)ac.suspend();}catch(e){}}
   mixAudio();
   function getACraw(){if(!ac){try{ac=new (window.AudioContext||window.webkitAudioContext)();}catch(e){}}if(ac&&ac.state==='suspended'){try{ac.resume();}catch(e){}}return ac;}
   function getAC(){mixAudio();return getACraw();}
