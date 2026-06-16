@@ -114,6 +114,12 @@ svg.chart{width:100%;height:170px;display:block;}
 .addex{margin:0 0 12px;}
 .addex>summary{cursor:pointer;color:var(--rest);font-weight:600;font-size:14px;padding:8px 2px;list-style:none;}
 .addex>summary::-webkit-details-marker{display:none;}
+.partchips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px;}
+.partchips .pc{padding:6px 12px;border:1px solid var(--line);background:#fff;border-radius:999px;font-size:13px;font-weight:600;color:var(--muted);}
+.partchips .pc.on{background:var(--accent);color:#fff;border-color:var(--accent);}
+.expick{display:flex;flex-wrap:wrap;gap:6px;}
+.expick:empty{display:none;}
+.expick .ec{padding:6px 10px;border:1px solid var(--rest);background:#fff;border-radius:8px;font-size:13px;color:var(--rest);}
 .bodyfig{display:flex;gap:10px;align-items:flex-start;}
 .figcol{flex:1;min-width:0;}
 .figcap{text-align:center;font-size:12px;color:var(--faint);margin-bottom:2px;}
@@ -137,11 +143,17 @@ svg.chart{width:100%;height:170px;display:block;}
   <section id="view-rec">
     <div id="list"></div>
     <details class="addex"><summary>＋ この日に種目を追加</summary>
-      <div class="card" style="margin-top:6px;"><div class="inrow">
-        <input id="recNewEx" class="txt" placeholder="種目名（例：ケーブルフライ）" style="flex:1;min-width:120px;width:auto;">
-        <input id="recNewRest" type="number" inputmode="numeric" placeholder="休憩秒" style="width:84px;">
-        <button class="btn sm primary" id="recAddEx">追加</button>
-      </div></div>
+      <div class="card" style="margin-top:6px;">
+        <div class="muted" style="font-size:12px;margin-bottom:6px;">部位を選ぶと種目候補が出ます（一覧から選ぶ・直接入力も可）</div>
+        <div id="partChips" class="partchips"></div>
+        <div id="exPick" class="expick"></div>
+        <div class="inrow" style="margin-top:6px;">
+          <input id="recNewEx" class="txt" list="exCatalog" placeholder="種目名" style="flex:1;min-width:120px;width:auto;">
+          <input id="recNewRest" type="number" inputmode="numeric" placeholder="休憩秒" style="width:84px;">
+          <button class="btn sm primary" id="recAddEx">追加</button>
+        </div>
+        <datalist id="exCatalog"></datalist>
+      </div>
     </details>
     <div class="card">
       <label class="fld">今日のメモ（調子・痛み・気づき）</label>
@@ -273,7 +285,7 @@ svg.chart{width:100%;height:170px;display:block;}
     <button class="btn" id="resetProg" style="color:var(--danger);">メニューを初期設定に戻す</button>
   </section>
 
-  <div class="ver" id="ver">v19</div>
+  <div class="ver" id="ver">v20</div>
 </div>
 
 <div class="timer" id="timer">
@@ -571,7 +583,34 @@ svg.chart{width:100%;height:170px;display:block;}
   document.getElementById('addDay').addEventListener('click',function(){var name=(prompt('追加する日の名前は？','Day'+(Object.keys(S.program).length+1))||'').trim();if(!name)return;if(S.program[name]){alert('同じ名前の日があります');return;}S.program[name]=[];daySel.value=name;refreshDays(name);});
   document.getElementById('renameDay').addEventListener('click',function(){var oldK=setDay.value;var name=(prompt('「'+oldK+'」の新しい名前は？',oldK)||'').trim();if(!name||name===oldK)return;if(S.program[name]){alert('同じ名前の日があります');return;}var np={};Object.keys(S.program).forEach(function(k){np[k===oldK?name:k]=S.program[k];});S.program=np;if(daySel.value===oldK)daySel.value=name;refreshDays(name);});
   document.getElementById('delDay').addEventListener('click',function(){var k=setDay.value;if(Object.keys(S.program).length<=1){alert('最後の1日は削除できません');return;}if(confirm('「'+k+'」を削除しますか？（この日のメニュー構成のみ削除・記録データは残ります）')){delete S.program[k];refreshDays();}});
-  document.getElementById('recAddEx').addEventListener('click',function(){var n=document.getElementById('recNewEx').value.trim(),r=parseInt(document.getElementById('recNewRest').value,10);if(!n)return;S.program[daySel.value].push([n,(r>=0?r:90),'']);openEx=n;document.getElementById('recNewEx').value='';document.getElementById('recNewRest').value='';save();renderRec();});
+  document.getElementById('recAddEx').addEventListener('click',function(){var n=document.getElementById('recNewEx').value.trim(),r=parseInt(document.getElementById('recNewRest').value,10);if(!n)return;S.program[daySel.value].push([n,(r>=0?r:90),'']);openEx=n;document.getElementById('recNewEx').value='';document.getElementById('recNewRest').value='';save();renderRec();buildExPicker();});
+  var EXCAT={
+    '胸':['ベンチプレス','インクラインDBプレス','ダンベルフライ','チェストフライ','ディップス','プッシュアップ'],
+    '肩':['ショルダープレス','DBショルダープレス','サイドレイズ','フロントレイズ','リアレイズ','フェイスプル'],
+    '背中':['ラットプルダウン','懸垂','シーテッドロー','ベントオーバーロー','ワンハンドDBロー','ケーブルロー','デッドリフト','シュラッグ'],
+    '二頭':['バーベルカール','EZバーカール','ダンベルカール','ハンマーカール','コンセントレーションカール'],
+    '三頭':['プレスダウン','スカルクラッシャー','フレンチプレス','キックバック','クローズグリップベンチ'],
+    '前腕':['リストカール','リバースカール'],
+    '脚':['スクワット','レッグプレス','ハックスクワット','レッグエクステンション','レッグカール','ルーマニアンデッドリフト','ランジ','ヒップスラスト','カーフレイズ','アダクション'],
+    '腹':['腹筋ローラー','クランチ','レッグレイズ','プランク','ケーブルクランチ','サイドベンド','ツイスト']
+  };
+  function inferRest(n){if(/デッドリフト|スクワット|ベンチプレス/.test(n))return 180;if(/プレス|ロー|プルダウン|懸垂|ランジ|ヒップスラスト|ディップ/.test(n))return 120;return 75;}
+  function buildExPicker(){
+    var dl=document.getElementById('exCatalog');if(!dl)return;
+    var all={};Object.keys(S.program).forEach(function(d){(S.program[d]||[]).forEach(function(r){all[r[0]]=1;});});Object.keys(EXCAT).forEach(function(p){EXCAT[p].forEach(function(n){all[n]=1;});});
+    dl.innerHTML=Object.keys(all).map(function(n){return '<option value="'+n.replace(/"/g,'')+'"></option>';}).join('');
+    var pc=document.getElementById('partChips'),exp=document.getElementById('exPick');if(!pc||!exp)return;pc.innerHTML='';exp.innerHTML='';
+    Object.keys(EXCAT).forEach(function(part){
+      var b=document.createElement('button');b.type='button';b.className='pc';b.textContent=part;
+      b.addEventListener('click',function(){
+        Array.prototype.forEach.call(pc.children,function(c){c.classList.remove('on');});b.classList.add('on');
+        exp.innerHTML='';
+        EXCAT[part].forEach(function(name){var e=document.createElement('button');e.type='button';e.className='ec';e.textContent=name;e.addEventListener('click',function(){var ne=document.getElementById('recNewEx'),nr=document.getElementById('recNewRest');ne.value=name;if(!nr.value)nr.value=inferRest(name);ne.focus();});exp.appendChild(e);});
+      });
+      pc.appendChild(b);
+    });
+  }
+  buildExPicker();
   var alarmTypeEl=document.getElementById('alarmType');
   var voiceTextEl=document.getElementById('voiceText');
   var voiceRowEl=document.getElementById('voiceRow');
