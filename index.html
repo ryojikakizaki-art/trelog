@@ -181,12 +181,14 @@ svg.chart{width:100%;height:170px;display:block;}
       <div class="metric"><div class="lab">摂取</div><div class="val" id="mIn">0</div><div class="faint" id="mTgt"></div></div>
       <div class="metric"><div class="lab">運動消費（参考）</div><div class="val" id="mBurn">0</div><div class="faint">ウォーキング＋トレ</div></div>
     </div>
+    <div id="mP" class="faint" style="margin:-4px 0 12px;font-size:13px;"></div>
     <div class="card">
       <div class="muted" style="font-size:13px;margin-bottom:8px;">食事を追加</div>
       <div class="row" style="flex-wrap:wrap;gap:6px;" id="presets"></div>
       <div class="inrow" style="margin-top:10px;">
-        <input class="txt" id="mealName" placeholder="夕食など" style="flex:1;min-width:120px;width:auto;">
-        <input id="mealKcal" type="number" inputmode="numeric" placeholder="kcal" style="width:90px;">
+        <input class="txt" id="mealName" placeholder="夕食など" style="flex:1;min-width:110px;width:auto;">
+        <input id="mealKcal" type="number" inputmode="numeric" placeholder="kcal" style="width:78px;">
+        <input id="mealProtein" type="number" inputmode="numeric" placeholder="P(g)" style="width:64px;">
         <button class="btn sm primary" id="addMeal">追加</button>
       </div>
       <div id="mealList" style="margin-top:8px;"></div>
@@ -253,6 +255,11 @@ svg.chart{width:100%;height:170px;display:block;}
     <div class="faint" style="text-align:center;margin-top:6px;line-height:1.6;">色：薄いほど未・濃いほど今週よく鍛えた。<br>日曜の夜に自動リセット（月曜から新しい週）。</div>
   </section>
 
+  <section id="view-report" class="hide">
+    <h2>まとめ</h2>
+    <div id="reportBody"></div>
+    <div class="faint" style="text-align:center;margin-top:8px;line-height:1.6;">食事のたんぱく質はプリセット（朝/昼/プロテイン）とP欄入力から集計。<br>これでMacへのCSV書き出しは不要です。</div>
+  </section>
   <section id="view-set" class="hide">
     <h2>設定（メニュー・休憩秒数）</h2>
     <div class="card">
@@ -294,7 +301,7 @@ svg.chart{width:100%;height:170px;display:block;}
     <button class="btn" id="resetProg" style="color:var(--danger);">メニューを初期設定に戻す</button>
   </section>
 
-  <div class="ver" id="ver">v21</div>
+  <div class="ver" id="ver">v22</div>
 </div>
 
 <div class="timer" id="timer">
@@ -315,7 +322,7 @@ svg.chart{width:100%;height:170px;display:block;}
     'Day4 上半身（ベンチ・ボリューム）':[['ベンチプレス',150,'6〜8回×4'],['ワイドラットプル',120,'10-12×4'],['DBショルダープレス',120,'10-12×3'],['ケーブルロー',120,'10-12×3'],['クローズグリップベンチ',120,'10-12×3']],
     'Day5 下半身＋追い込み':[['スミススクワット',150,'10-12×4'],['ランジ',120,'12×3'],['レッグカール',90,'12-15×3'],['サイドレイズ',60,'15-20×4'],['腹筋ローラー',60,'10-15×3']]
   };
-  var MEAL_PRESETS=[['朝食',565],['昼食',990],['トレ後プロテイン',100]];
+  var MEAL_PRESETS=[['朝食',565,58],['昼食',990,38],['トレ後プロテイン',100,20]];
   var KEY='ado_trelog_v1';
   function todayStr(){return new Date().toISOString().slice(0,10);}
   var today=todayStr();
@@ -469,7 +476,7 @@ svg.chart{width:100%;height:170px;display:block;}
     MEAL_PRESETS.forEach(function(p){
       var has=S.meals.some(function(m){return m.date===today&&m.label===p[0];});
       var b=document.createElement('button');b.className='btn sm'+(has?' primary':'');b.textContent=p[0]+' '+p[1];
-      b.addEventListener('click',function(){if(has){S.meals=S.meals.filter(function(m){return!(m.date===today&&m.label===p[0]);});}else{S.meals.push({date:today,label:p[0],kcal:p[1]});}save();renderKcal();});
+      b.addEventListener('click',function(){if(has){S.meals=S.meals.filter(function(m){return!(m.date===today&&m.label===p[0]);});}else{S.meals.push({date:today,label:p[0],kcal:p[1],protein:p[2]||0});}save();renderKcal();});
       pr.appendChild(b);
     });
     var ml=document.getElementById('mealList');ml.innerHTML='';
@@ -494,12 +501,13 @@ svg.chart{width:100%;height:170px;display:block;}
     document.getElementById('dayType').textContent=isTrainingDay()?'（トレ日 目標2,650）':'（休養日 目標2,350）';
     document.getElementById('mIn').textContent=Math.round(intake).toLocaleString();
     var diff=Math.round(intake)-tgt;document.getElementById('mTgt').textContent='目標 '+tgt.toLocaleString()+'（'+(diff>=0?'+':'')+diff+'）';
+    var prot=S.meals.filter(function(m){return m.date===today;}).reduce(function(a,m){return a+(+m.protein||0);},0);var mp=document.getElementById('mP');if(mp)mp.innerHTML='たんぱく質 <b style="color:var(--text);">'+Math.round(prot)+'</b> / 140 g'+(prot<140?'（あと'+Math.round(140-prot)+'g）':' ✓');
     document.getElementById('mBurn').textContent=Math.round(walkBurn+tb).toLocaleString();
     document.getElementById('trainBurn').textContent=tb+' kcal';
     document.getElementById('trainMin').placeholder=Math.round(trainMinAuto())+'（自動）';
     if(S.trainMin[today]!=null)document.getElementById('trainMin').value=S.trainMin[today];
   }
-  document.getElementById('addMeal').addEventListener('click',function(){var n=document.getElementById('mealName').value.trim(),k=parseFloat(document.getElementById('mealKcal').value);if(!n||!(k>0))return;S.meals.push({date:today,label:n,kcal:k});save();document.getElementById('mealName').value='';document.getElementById('mealKcal').value='';renderKcal();});
+  document.getElementById('addMeal').addEventListener('click',function(){var n=document.getElementById('mealName').value.trim(),k=parseFloat(document.getElementById('mealKcal').value),pr=parseFloat(document.getElementById('mealProtein').value)||0;if(!n||!(k>0))return;S.meals.push({date:today,label:n,kcal:k,protein:pr});save();document.getElementById('mealName').value='';document.getElementById('mealKcal').value='';document.getElementById('mealProtein').value='';renderKcal();});
   document.getElementById('addWalk').addEventListener('click',function(){var mets=parseFloat(document.getElementById('walkPace').value),min=parseFloat(document.getElementById('walkMin').value);if(!(min>0))return;var kcal=Math.round(mets*weightOn()*min/60);var label=document.getElementById('walkPace').selectedOptions[0].textContent;S.cardio.push({date:today,type:label,minutes:min,kcal:kcal});save();document.getElementById('walkMin').value='';renderKcal();});
   document.getElementById('saveTrainMin').addEventListener('click',function(){var v=parseFloat(document.getElementById('trainMin').value);if(v>=0)S.trainMin[today]=v;else delete S.trainMin[today];save();renderKcal();});
 
@@ -680,13 +688,55 @@ svg.chart{width:100%;height:170px;display:block;}
     var chips=document.getElementById('exChips');chips.innerHTML='';
     (S.program[day]||[]).forEach(function(row){var ex=row[0];var b=document.createElement('button');b.className='btn sm';b.textContent=ex;b.addEventListener('click',function(){var ks=musclesFor(ex);highlightRegions(ks);document.getElementById('muscleInfo').textContent=ex+' → '+(ks.length?ks.map(function(k){return MNAME[k];}).join('・'):'—');});chips.appendChild(b);});
   }
-  var TABS=[['rec','記録','M4 7h16M4 12h16M4 17h10'],['kcal','カロリー','M5 12a7 7 0 1 0 14 0 7 7 0 1 0-14 0M12 7v5l3 2'],['cal','暦','M4 6h16v14H4zM4 10h16M8 3v4M16 3v4'],['graph','グラフ','M4 19V5M4 19h16M8 15l3-4 3 2 4-6'],['body','カラダ','M12 9a4 4 0 1 0 0-8 4 4 0 0 0 0 8M5 21a7 7 0 0 1 14 0'],['set','設定','M5 7h14M5 12h14M5 17h14']];
+  function renderReport(){
+    var box=document.getElementById('reportBody');if(!box)return;
+    var ws=weekStart();
+    function inWk(dt){return dt>=ws&&dt<=today;}
+    var kcalSum=0,kDays=0,pSum=0,tgtSum=0;
+    var trainDates={};S.logs.forEach(function(l){if(inWk(l.date))trainDates[l.date]=1;});
+    var trainDays=Object.keys(trainDates).length;
+    var setTotal=S.logs.filter(function(l){return inWk(l.date);}).length;
+    var mealDates={};S.meals.forEach(function(m){if(inWk(m.date))mealDates[m.date]=1;});
+    Object.keys(mealDates).forEach(function(dt){
+      var meals=S.meals.filter(function(m){return m.date===dt;});
+      kcalSum+=meals.reduce(function(a,m){return a+(+m.kcal||0);},0);
+      pSum+=meals.reduce(function(a,m){return a+(+m.protein||0);},0);
+      tgtSum+=(trainDates[dt]?2650:2350);kDays++;
+    });
+    var tMeals=S.meals.filter(function(m){return m.date===today;});
+    var tK=tMeals.reduce(function(a,m){return a+(+m.kcal||0);},0);
+    var tP=tMeals.reduce(function(a,m){return a+(+m.protein||0);},0);
+    var tTgt=isTrainingDay()?2650:2350;
+    var bw=S.body.slice().sort(function(a,b){return a.date<b.date?-1:1;});
+    var latestW=bw.length?bw[bw.length-1].weight:null,startW=null;
+    bw.forEach(function(x){if(x.date<=ws)startW=x.weight;});if(startW==null&&bw.length)startW=bw[0].weight;
+    var wCh=(latestW!=null&&startW!=null)?Math.round((latestW-startW)*10)/10:null;
+    var bBest=e1rmBest('ベンチプレス'),bRem=bBest>0?Math.max(0,140-Math.round(bBest)):null;
+    var by=weekSets();var miss=MAJORS.filter(function(k){return !by[k];}).map(function(k){return MNAME[k];});
+    var avgK=kDays?Math.round(kcalSum/kDays):0,avgTgt=kDays?Math.round(tgtSum/kDays):0,avgP=kDays?Math.round(pSum/kDays):0;
+    function pill(l,v,s){return '<div class="metric"><div class="lab">'+l+'</div><div class="val">'+v+'</div><div class="faint">'+(s||'')+'</div></div>';}
+    var h='';
+    h+='<h3 style="font-size:15px;margin:2px 0 6px;">今日</h3><div class="metrics">'
+      +pill('カロリー',Math.round(tK).toLocaleString(),'目標 '+tTgt.toLocaleString()+'（'+((tK-tTgt)>=0?'+':'')+Math.round(tK-tTgt)+'）')
+      +pill('たんぱく質',Math.round(tP)+'g',tP>=140?'達成 ✓':'あと'+Math.round(140-tP)+'g')+'</div>';
+    h+='<h3 style="font-size:15px;margin:10px 0 6px;">今週（'+ws.slice(5)+'〜）</h3><div class="metrics">'
+      +pill('平均カロリー',avgK?avgK.toLocaleString():'—',kDays?('目標平均 '+avgTgt.toLocaleString()):'記録待ち')
+      +pill('平均たんぱく質',avgP?avgP+'g':'—','目標 140g')
+      +pill('トレ日数',trainDays+'日','総 '+setTotal+' セット')
+      +pill('体重変化',wCh!=null?((wCh>=0?'+':'')+wCh+'kg'):'—','理想 +0.2〜0.3/週')+'</div>';
+    if(bBest>0){var pct=Math.min(100,Math.round(bBest/140*100));
+      h+='<div class="card"><div class="muted" style="font-size:13px;">ベンチプレス 140kg への道</div><div style="font-weight:700;font-size:15px;margin:4px 0;">推定1RM '+Math.round(bBest)+'kg ／ あと '+bRem+'kg</div><div style="height:10px;background:#eee;border-radius:99px;overflow:hidden;"><div style="height:100%;width:'+pct+'%;background:var(--gold);"></div></div></div>';}
+    h+='<div class="card"><div class="muted" style="font-size:13px;margin-bottom:4px;">今週まだ鍛えていない部位</div><div style="font-weight:600;">'+(miss.length?('<span style="color:var(--danger);">'+miss.join('・')+'</span>'):'<span style="color:#0f6e56;">なし — バランス良好</span>')+'</div></div>';
+    h+='<div class="card"><div class="muted" style="font-size:13px;margin-bottom:4px;">微量栄養素のヒント（固定食ベース）</div><div style="font-size:13px;line-height:1.7;">鉄・亜鉛：赤身肉・レバー・貝類・卵（不足しがち）<br>ビタミンD：鮭・卵・日光／カルシウム：乳製品・小魚・豆腐<br>食物繊維：野菜・きのこ・海藻を毎食</div></div>';
+    box.innerHTML=h;
+  }
+  var TABS=[['rec','記録','M4 7h16M4 12h16M4 17h10'],['kcal','カロリー','M5 12a7 7 0 1 0 14 0 7 7 0 1 0-14 0M12 7v5l3 2'],['cal','暦','M4 6h16v14H4zM4 10h16M8 3v4M16 3v4'],['graph','グラフ','M4 19V5M4 19h16M8 15l3-4 3 2 4-6'],['body','カラダ','M12 9a4 4 0 1 0 0-8 4 4 0 0 0 0 8M5 21a7 7 0 0 1 14 0'],['report','まとめ','M5 3h14v18H5zM8 8h8M8 12h8M8 16h5'],['set','設定','M5 7h14M5 12h14M5 17h14']];
   var nav=document.getElementById('tabs');
   TABS.forEach(function(t){var b=document.createElement('button');b.className='tab';b.id='tab-'+t[0];b.innerHTML='<svg class="ic" viewBox="0 0 24 24"><path d="'+t[2]+'"/></svg>'+t[1];b.addEventListener('click',function(){go(t[0]);});nav.appendChild(b);});
   function go(v){
-    ['rec','kcal','cal','graph','body','set'].forEach(function(x){document.getElementById('view-'+x).classList.toggle('hide',x!==v);document.getElementById('tab-'+x).classList.toggle('active',x===v);});
+    ['rec','kcal','cal','graph','body','report','set'].forEach(function(x){document.getElementById('view-'+x).classList.toggle('hide',x!==v);document.getElementById('tab-'+x).classList.toggle('active',x===v);});
     document.querySelector('header').style.display=(v==='rec')?'flex':'none';
-    if(v==='kcal')renderKcal();if(v==='cal')renderCal();if(v==='graph')renderGraph();if(v==='body')renderBody();if(v==='set')renderSet();
+    if(v==='kcal')renderKcal();if(v==='cal')renderCal();if(v==='graph')renderGraph();if(v==='body')renderBody();if(v==='report')renderReport();if(v==='set')renderSet();
   }
   window.go=go;
 
