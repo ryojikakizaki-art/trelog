@@ -181,18 +181,32 @@ svg.chart{width:100%;height:170px;display:block;}
       <div class="metric"><div class="lab">摂取</div><div class="val" id="mIn">0</div><div class="faint" id="mTgt"></div></div>
       <div class="metric"><div class="lab">運動消費（参考）</div><div class="val" id="mBurn">0</div><div class="faint">ウォーキング＋トレ</div></div>
     </div>
-    <div id="mP" class="faint" style="margin:-4px 0 12px;font-size:13px;"></div>
     <div class="card">
-      <div class="muted" style="font-size:13px;margin-bottom:8px;">食事を追加</div>
-      <div class="row" style="flex-wrap:wrap;gap:6px;" id="presets"></div>
-      <div class="inrow" style="margin-top:10px;">
-        <input class="txt" id="mealName" placeholder="夕食など" style="flex:1;min-width:110px;width:auto;">
-        <input id="mealKcal" type="number" inputmode="numeric" placeholder="kcal" style="width:78px;">
-        <input id="mealProtein" type="number" inputmode="numeric" placeholder="P(g)" style="width:64px;">
-        <button class="btn sm primary" id="addMeal">追加</button>
-      </div>
-      <div id="mealList" style="margin-top:8px;"></div>
-      <div class="faint" style="margin-top:6px;">夕食のkcalが分からなければ、Claudeのトレーナーに聞いて数値だけ入れてください。</div>
+      <div class="muted" style="font-size:13px;margin-bottom:4px;">栄養素（目標 vs 今日）<span id="dayTypeB" class="faint"></span></div>
+      <div id="nbars"></div>
+    </div>
+    <div class="card">
+      <div class="muted" style="font-size:13px;margin-bottom:4px;">今日の食事</div>
+      <div id="mealList"></div>
+    </div>
+    <div class="card">
+      <div class="muted" style="font-size:13px;margin-bottom:6px;">食材を追加</div>
+      <div class="row" style="gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:6px;"><span class="faint" style="font-size:12px;">区分</span><div id="slotChips" class="partchips" style="margin:0;"></div></div>
+      <div class="row" style="gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:8px;"><span class="faint" style="font-size:12px;">セット</span><div id="presets" style="display:flex;gap:6px;flex-wrap:wrap;"></div></div>
+      <div id="foodCats" class="partchips"></div>
+      <div id="foodPick" class="expick" style="margin-bottom:6px;"></div>
+      <div class="row" style="gap:6px;align-items:center;"><span class="faint" style="font-size:12px;">量 ×</span><input id="foodQty" type="number" inputmode="decimal" value="1" step="0.5" style="width:56px;padding:8px;border:1px solid var(--line);border-radius:8px;text-align:center;"><span class="faint" style="font-size:12px;">食材をタップで追加</span></div>
+      <details class="cust"><summary>手入力で追加（kcal/P/F/C）</summary>
+        <div class="inrow" style="margin-top:6px;">
+          <input class="txt" id="mealName" placeholder="食材名" style="flex:1;min-width:84px;width:auto;">
+          <input id="mealKcal" type="number" inputmode="numeric" placeholder="kcal" style="width:60px;">
+          <input id="mealProtein" type="number" inputmode="numeric" placeholder="P" style="width:46px;">
+          <input id="mealFat" type="number" inputmode="numeric" placeholder="F" style="width:46px;">
+          <input id="mealCarb" type="number" inputmode="numeric" placeholder="C" style="width:46px;">
+          <button class="btn sm primary" id="addMeal">追加</button>
+        </div>
+        <label style="display:flex;align-items:center;gap:6px;font-size:12px;margin-top:6px;color:var(--muted);"><input type="checkbox" id="saveFood">この食材をリストに保存（マイ食材）</label>
+      </details>
     </div>
     <div class="card">
       <div class="muted" style="font-size:13px;margin-bottom:8px;">有酸素（ウォーキングなど）</div>
@@ -301,7 +315,7 @@ svg.chart{width:100%;height:170px;display:block;}
     <button class="btn" id="resetProg" style="color:var(--danger);">メニューを初期設定に戻す</button>
   </section>
 
-  <div class="ver" id="ver">v22</div>
+  <div class="ver" id="ver">v23</div>
 </div>
 
 <div class="timer" id="timer">
@@ -323,12 +337,30 @@ svg.chart{width:100%;height:170px;display:block;}
     'Day5 下半身＋追い込み':[['スミススクワット',150,'10-12×4'],['ランジ',120,'12×3'],['レッグカール',90,'12-15×3'],['サイドレイズ',60,'15-20×4'],['腹筋ローラー',60,'10-15×3']]
   };
   var MEAL_PRESETS=[['朝食',565,58],['昼食',990,38],['トレ後プロテイン',100,20]];
+  var FOODS=[
+    ['鶏むね肉100g',108,22,1.5,0,'たんぱく源'],['鶏もも(皮なし)100g',113,19,5,0,'たんぱく源'],
+    ['牛赤身100g',130,21,5,0,'たんぱく源'],['豚ロース100g',150,22,6,0,'たんぱく源'],
+    ['鮭1切れ80g',133,18,6,0,'たんぱく源'],['ツナ水煮1缶',71,16,0.7,0,'たんぱく源'],
+    ['ゆで卵1個',76,6.2,5.2,0.3,'たんぱく源'],['納豆1パック',80,7,4,5,'たんぱく源'],
+    ['木綿豆腐150g',110,11,7,2,'たんぱく源'],['プロテイン1杯',100,20,1.5,2,'たんぱく源'],
+    ['ギリシャヨーグルト100g',59,10,0,4,'たんぱく源'],
+    ['白米(炊)150g',252,3.8,0.5,56,'主食'],['玄米(炊)150g',248,4,1,53,'主食'],
+    ['そば(ゆで)200g',260,9.6,2,48,'主食'],['食パン6枚切1枚',149,5,2.5,28,'主食'],
+    ['オートミール40g',150,5,3,27,'主食'],['さつまいも100g',132,1,0.2,32,'主食'],
+    ['ブロッコリー100g',33,4,0.5,5,'野菜'],['サラダ(野菜)',30,2,0.2,5,'野菜'],
+    ['バナナ1本',86,1.1,0.2,22,'間食'],['アーモンド25g',150,5,13,5,'間食'],['オリーブ油大さじ1',111,0,12,0,'油脂']
+  ];
+  var FOOD_SETS=[
+    ['朝食セット','朝',[['鶏むね肉100g',1],['ゆで卵1個',2],['オートミール40g',1],['プロテイン1杯',1]]],
+    ['昼食セット','昼',[['そば(ゆで)200g',2],['ゆで卵1個',1]]],
+    ['プロテイン','間食',[['プロテイン1杯',1]]]
+  ];
   var KEY='ado_trelog_v1';
   function todayStr(){return new Date().toISOString().slice(0,10);}
   var today=todayStr();
   function load(){try{return JSON.parse(localStorage.getItem(KEY))||{}}catch(e){return{}}}
   var S=load();
-  S.logs=S.logs||[];S.body=S.body||[];S.cardio=S.cardio||[];S.meals=S.meals||[];S.notes=S.notes||{};S.trainMin=S.trainMin||{};if(S.voiceText===undefined)S.voiceText='休憩終了。次のセットだ。';if(S.alarmType===undefined)S.alarmType='standard';S.customEx=S.customEx||{};
+  S.logs=S.logs||[];S.body=S.body||[];S.cardio=S.cardio||[];S.meals=S.meals||[];S.notes=S.notes||{};S.trainMin=S.trainMin||{};if(S.voiceText===undefined)S.voiceText='休憩終了。次のセットだ。';if(S.alarmType===undefined)S.alarmType='standard';S.customEx=S.customEx||{};S.customFoods=S.customFoods||[];S.meals=S.meals.map(function(m){return {date:m.date,slot:m.slot||'他',name:m.name||m.label||'食事',kcal:+m.kcal||0,p:(m.p!=null?+m.p:(+m.protein||0)),f:+m.f||0,c:+m.c||0};});
   if(!S.program){S.program=JSON.parse(JSON.stringify(DEFAULT_PROGRAM));}
   function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}}
 
@@ -457,7 +489,7 @@ svg.chart{width:100%;height:170px;display:block;}
       var b=S.body.filter(function(x){return x.date===d;})[0];
       if(!t.length&&!m.length&&!c.length&&!b&&!S.notes[d])return;
       lines.push('=== LOG '+d+' ===');
-      m.forEach(function(x){lines.push('MEAL,'+d+','+x.label+','+Math.round(x.kcal)+',,,');});
+      m.forEach(function(x){lines.push('MEAL,'+d+','+(x.name||x.label||'食事')+','+Math.round(x.kcal)+','+(x.p||0)+','+(x.f||0)+','+(x.c||0));});
       t.forEach(function(l){lines.push('TRAIN,'+d+','+l.exercise+','+l.setNo+','+fmtW(l.weight)+','+l.reps);});
       c.forEach(function(x){lines.push('CARDIO,'+d+','+x.type+','+x.minutes+','+Math.round(x.kcal));});
       if(b)lines.push('BODY,'+d+','+fmtW(b.weight)+',');
@@ -470,44 +502,47 @@ svg.chart{width:100%;height:170px;display:block;}
   document.getElementById('exp7').addEventListener('click',function(){buildExport('7');});
 
   function isTrainingDay(){return allTodaySets().length>0;}
+  var curSlot='朝',curFoodCat=null;
+  function fnum(x){return Math.round(x*10)/10;}
+  function allFoods(){return FOODS.concat((S.customFoods||[]).map(function(f){return [f.name,f.kcal,f.p,f.f,f.c,'マイ食材'];}));}
+  function findFood(n){var a=allFoods();for(var i=0;i<a.length;i++)if(a[i][0]===n)return a[i];return null;}
+  function dayTargets(){return isTrainingDay()?{kcal:2650,p:140,f:65,c:370}:{kcal:2350,p:140,f:60,c:250};}
+  function todayFoods(){return S.meals.filter(function(m){return m.date===today;});}
+  function foodTotals(list){return list.reduce(function(a,m){a.kcal+=+m.kcal||0;a.p+=+m.p||0;a.f+=+m.f||0;a.c+=+m.c||0;return a;},{kcal:0,p:0,f:0,c:0});}
+  function addFoodRow(fd,q,slot){S.meals.push({date:today,slot:slot||curSlot,name:q===1?fd[0]:fd[0]+' ×'+q,kcal:Math.round(fd[1]*q),p:fnum(fd[2]*q),f:fnum(fd[3]*q),c:fnum(fd[4]*q)});}
   function trainMinAuto(){return Math.max(0,allTodaySets().length*3.5);}
   function renderKcal(){
+    var SLOTS=['朝','昼','夕','間食'];
+    var sc=document.getElementById('slotChips');if(sc){sc.innerHTML='';SLOTS.forEach(function(s){var b=document.createElement('button');b.type='button';b.className='pc'+(s===curSlot?' on':'');b.textContent=s;b.addEventListener('click',function(){curSlot=s;renderKcal();});sc.appendChild(b);});}
     var pr=document.getElementById('presets');pr.innerHTML='';
-    MEAL_PRESETS.forEach(function(p){
-      var has=S.meals.some(function(m){return m.date===today&&m.label===p[0];});
-      var b=document.createElement('button');b.className='btn sm'+(has?' primary':'');b.textContent=p[0]+' '+p[1];
-      b.addEventListener('click',function(){if(has){S.meals=S.meals.filter(function(m){return!(m.date===today&&m.label===p[0]);});}else{S.meals.push({date:today,label:p[0],kcal:p[1],protein:p[2]||0});}save();renderKcal();});
-      pr.appendChild(b);
-    });
-    var ml=document.getElementById('mealList');ml.innerHTML='';
-    S.meals.filter(function(m){return m.date===today;}).forEach(function(m,i){
-      var r=document.createElement('div');r.className='row';r.style.cssText='justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--line);';
-      r.innerHTML='<span>'+m.label+'</span><span class="row" style="gap:10px;"><b>'+Math.round(m.kcal)+'</b><button class="del2">削除</button></span>';
-      r.querySelector('.del2').addEventListener('click',function(){var idx=S.meals.indexOf(m);if(idx>-1)S.meals.splice(idx,1);save();renderKcal();});
-      ml.appendChild(r);
+    FOOD_SETS.forEach(function(set){var b=document.createElement('button');b.className='btn sm';b.textContent='＋'+set[0];b.addEventListener('click',function(){set[2].forEach(function(it){var fd=findFood(it[0]);if(fd)addFoodRow(fd,it[1],set[1]);});save();renderKcal();});pr.appendChild(b);});
+    var cats=[];allFoods().forEach(function(f){if(cats.indexOf(f[5])<0)cats.push(f[5]);});
+    var fcs=document.getElementById('foodCats');if(fcs){fcs.innerHTML='';cats.forEach(function(cat){var b=document.createElement('button');b.type='button';b.className='pc'+(cat===curFoodCat?' on':'');b.textContent=cat;b.addEventListener('click',function(){curFoodCat=cat;renderKcal();});fcs.appendChild(b);});}
+    var fp=document.getElementById('foodPick');if(fp){fp.innerHTML='';if(curFoodCat){allFoods().filter(function(f){return f[5]===curFoodCat;}).forEach(function(f){var b=document.createElement('button');b.type='button';b.className='ec';b.textContent=f[0]+' ('+f[1]+')';b.addEventListener('click',function(){var q=parseFloat(document.getElementById('foodQty').value)||1;addFoodRow(f,q,curSlot);save();renderKcal();});fp.appendChild(b);});}}
+    var ml=document.getElementById('mealList');ml.innerHTML='';var tf=todayFoods();
+    if(!tf.length)ml.innerHTML='<div class="faint" style="font-size:13px;">まだありません。下の「食材を追加」から記録してください。</div>';
+    SLOTS.concat(['他']).forEach(function(slot){var items=tf.filter(function(m){return (m.slot||'他')===slot;});if(!items.length)return;var st=foodTotals(items);
+      var h=document.createElement('div');h.style.cssText='display:flex;justify-content:space-between;font-weight:600;font-size:13px;margin:8px 0 2px;color:var(--rest);';h.innerHTML='<span>'+slot+'</span><span class="faint" style="font-weight:400;">'+Math.round(st.kcal)+'kcal / P'+fnum(st.p)+'</span>';ml.appendChild(h);
+      items.forEach(function(m){var r=document.createElement('div');r.className='row';r.style.cssText='justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--line);';r.innerHTML='<span style="font-size:14px;">'+m.name+'</span><span class="row" style="gap:8px;font-size:12px;"><span class="faint">P'+fnum(m.p)+' F'+fnum(m.f)+' C'+fnum(m.c)+'</span><b>'+Math.round(m.kcal)+'</b><button class="del2">×</button></span>';r.querySelector('.del2').addEventListener('click',function(){var idx=S.meals.indexOf(m);if(idx>-1)S.meals.splice(idx,1);save();renderKcal();});ml.appendChild(r);});
     });
     var cl=document.getElementById('cardioList');cl.innerHTML='';
-    S.cardio.filter(function(c){return c.date===today;}).forEach(function(c){
-      var r=document.createElement('div');r.className='row';r.style.cssText='justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--line);';
-      r.innerHTML='<span>'+c.type+' '+c.minutes+'分</span><span class="row" style="gap:10px;"><b>'+Math.round(c.kcal)+' kcal</b><button class="del2">削除</button></span>';
-      r.querySelector('.del2').addEventListener('click',function(){var idx=S.cardio.indexOf(c);if(idx>-1)S.cardio.splice(idx,1);save();renderKcal();});
-      cl.appendChild(r);
-    });
-    var intake=S.meals.filter(function(m){return m.date===today;}).reduce(function(a,m){return a+(+m.kcal||0);},0);
+    S.cardio.filter(function(c){return c.date===today;}).forEach(function(c){var r=document.createElement('div');r.className='row';r.style.cssText='justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--line);';r.innerHTML='<span>'+c.type+' '+c.minutes+'分</span><span class="row" style="gap:10px;"><b>'+Math.round(c.kcal)+' kcal</b><button class="del2">削除</button></span>';r.querySelector('.del2').addEventListener('click',function(){var idx=S.cardio.indexOf(c);if(idx>-1)S.cardio.splice(idx,1);save();renderKcal();});cl.appendChild(r);});
+    var tt=foodTotals(tf),tg=dayTargets();
+    document.getElementById('dayType').textContent=isTrainingDay()?'（トレ日）':'（休養日）';
+    var dtb=document.getElementById('dayTypeB');if(dtb)dtb.textContent=isTrainingDay()?'（トレ日）':'（休養日）';
+    document.getElementById('mIn').textContent=Math.round(tt.kcal).toLocaleString();
+    var diff=Math.round(tt.kcal)-tg.kcal;document.getElementById('mTgt').textContent='目標 '+tg.kcal.toLocaleString()+'（'+(diff>=0?'+':'')+diff+'）';
+    var nb=document.getElementById('nbars');
+    if(nb){function bar(l,cur,tgt,u,col){var pct=tgt>0?Math.min(100,Math.round(cur/tgt*100)):0;var over=cur>tgt*1.05;return '<div style="margin:8px 0;"><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px;"><span>'+l+'</span><span><b>'+Math.round(cur)+'</b> / '+tgt+u+'</span></div><div style="height:11px;background:#eef0f2;border-radius:99px;overflow:hidden;"><div style="height:100%;width:'+pct+'%;background:'+(over?'var(--danger)':col)+';transition:width .3s;"></div></div></div>';}
+      nb.innerHTML=bar('カロリー',tt.kcal,tg.kcal,'',(Math.abs(tt.kcal-tg.kcal)<=tg.kcal*0.06?'#0f6e56':'var(--gold)'))+bar('たんぱく質',tt.p,tg.p,'g',tt.p>=tg.p?'#0f6e56':'var(--gold)')+bar('脂質',tt.f,tg.f,'g','#c98a3a')+bar('炭水化物',tt.c,tg.c,'g','#c98a3a');}
     var walkBurn=S.cardio.filter(function(c){return c.date===today;}).reduce(function(a,c){return a+(+c.kcal||0);},0);
-    var tmin=(S.trainMin[today]!=null)?S.trainMin[today]:trainMinAuto();
-    var tb=Math.round(5.0*weightOn()*tmin/60);
-    var tgt=isTrainingDay()?2650:2350;
-    document.getElementById('dayType').textContent=isTrainingDay()?'（トレ日 目標2,650）':'（休養日 目標2,350）';
-    document.getElementById('mIn').textContent=Math.round(intake).toLocaleString();
-    var diff=Math.round(intake)-tgt;document.getElementById('mTgt').textContent='目標 '+tgt.toLocaleString()+'（'+(diff>=0?'+':'')+diff+'）';
-    var prot=S.meals.filter(function(m){return m.date===today;}).reduce(function(a,m){return a+(+m.protein||0);},0);var mp=document.getElementById('mP');if(mp)mp.innerHTML='たんぱく質 <b style="color:var(--text);">'+Math.round(prot)+'</b> / 140 g'+(prot<140?'（あと'+Math.round(140-prot)+'g）':' ✓');
+    var tmin=(S.trainMin[today]!=null)?S.trainMin[today]:trainMinAuto();var tb=Math.round(5.0*weightOn()*tmin/60);
     document.getElementById('mBurn').textContent=Math.round(walkBurn+tb).toLocaleString();
     document.getElementById('trainBurn').textContent=tb+' kcal';
     document.getElementById('trainMin').placeholder=Math.round(trainMinAuto())+'（自動）';
     if(S.trainMin[today]!=null)document.getElementById('trainMin').value=S.trainMin[today];
   }
-  document.getElementById('addMeal').addEventListener('click',function(){var n=document.getElementById('mealName').value.trim(),k=parseFloat(document.getElementById('mealKcal').value),pr=parseFloat(document.getElementById('mealProtein').value)||0;if(!n||!(k>0))return;S.meals.push({date:today,label:n,kcal:k,protein:pr});save();document.getElementById('mealName').value='';document.getElementById('mealKcal').value='';document.getElementById('mealProtein').value='';renderKcal();});
+  document.getElementById('addMeal').addEventListener('click',function(){var n=document.getElementById('mealName').value.trim(),k=parseFloat(document.getElementById('mealKcal').value)||0,p=parseFloat(document.getElementById('mealProtein').value)||0,f=parseFloat(document.getElementById('mealFat').value)||0,c=parseFloat(document.getElementById('mealCarb').value)||0;if(!n)return;if(document.getElementById('saveFood').checked&&!findFood(n))S.customFoods.push({name:n,kcal:k,p:p,f:f,c:c});S.meals.push({date:today,slot:curSlot,name:n,kcal:k,p:p,f:f,c:c});['mealName','mealKcal','mealProtein','mealFat','mealCarb'].forEach(function(id){document.getElementById(id).value='';});document.getElementById('saveFood').checked=false;save();renderKcal();});
   document.getElementById('addWalk').addEventListener('click',function(){var mets=parseFloat(document.getElementById('walkPace').value),min=parseFloat(document.getElementById('walkMin').value);if(!(min>0))return;var kcal=Math.round(mets*weightOn()*min/60);var label=document.getElementById('walkPace').selectedOptions[0].textContent;S.cardio.push({date:today,type:label,minutes:min,kcal:kcal});save();document.getElementById('walkMin').value='';renderKcal();});
   document.getElementById('saveTrainMin').addEventListener('click',function(){var v=parseFloat(document.getElementById('trainMin').value);if(v>=0)S.trainMin[today]=v;else delete S.trainMin[today];save();renderKcal();});
 
@@ -700,12 +735,12 @@ svg.chart{width:100%;height:170px;display:block;}
     Object.keys(mealDates).forEach(function(dt){
       var meals=S.meals.filter(function(m){return m.date===dt;});
       kcalSum+=meals.reduce(function(a,m){return a+(+m.kcal||0);},0);
-      pSum+=meals.reduce(function(a,m){return a+(+m.protein||0);},0);
+      pSum+=meals.reduce(function(a,m){return a+(+m.p||0);},0);
       tgtSum+=(trainDates[dt]?2650:2350);kDays++;
     });
     var tMeals=S.meals.filter(function(m){return m.date===today;});
     var tK=tMeals.reduce(function(a,m){return a+(+m.kcal||0);},0);
-    var tP=tMeals.reduce(function(a,m){return a+(+m.protein||0);},0);
+    var tP=tMeals.reduce(function(a,m){return a+(+m.p||0);},0);
     var tTgt=isTrainingDay()?2650:2350;
     var bw=S.body.slice().sort(function(a,b){return a.date<b.date?-1:1;});
     var latestW=bw.length?bw[bw.length-1].weight:null,startW=null;
