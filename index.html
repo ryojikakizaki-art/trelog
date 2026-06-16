@@ -250,6 +250,10 @@ svg.chart{width:100%;height:170px;display:block;}
       <div id="graphBox"></div>
       <div id="graphStat" class="muted" style="font-size:13px;margin-top:6px;"></div>
     </div>
+    <div class="card">
+      <div class="muted" style="font-size:13px;margin-bottom:6px;">種目別 推定1RM（タップでグラフ表示）</div>
+      <div id="rmList"></div>
+    </div>
   </section>
 
   <section id="view-body" class="hide">
@@ -267,6 +271,12 @@ svg.chart{width:100%;height:170px;display:block;}
       <div id="exChips" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
     </div>
     <div class="faint" style="text-align:center;margin-top:6px;line-height:1.6;">色：薄いほど未・濃いほど今週よく鍛えた。<br>日曜の夜に自動リセット（月曜から新しい週）。</div>
+    <div class="card">
+      <div class="muted" style="font-size:13px;margin-bottom:8px;">サイズ記録（今日）</div>
+      <div id="bodyInputs"></div>
+      <button class="btn sm primary" id="saveBody" style="margin-top:10px;">保存</button>
+      <div class="faint" style="font-size:12px;margin-top:6px;">入力した項目だけ今日の記録に保存。推移は「グラフ」タブで見られます。</div>
+    </div>
   </section>
 
   <section id="view-report" class="hide">
@@ -315,7 +325,7 @@ svg.chart{width:100%;height:170px;display:block;}
     <button class="btn" id="resetProg" style="color:var(--danger);">メニューを初期設定に戻す</button>
   </section>
 
-  <div class="ver" id="ver">v23</div>
+  <div class="ver" id="ver">v24</div>
 </div>
 
 <div class="timer" id="timer">
@@ -579,16 +589,19 @@ svg.chart{width:100%;height:170px;display:block;}
   document.getElementById('prevM').addEventListener('click',function(){calM--;if(calM<0){calM=11;calY--;}renderCal();});
   document.getElementById('nextM').addEventListener('click',function(){calM++;if(calM>11){calM=0;calY++;}renderCal();});
 
+  var BODY_METRICS=[['weight','体重','kg'],['bodyfat','体脂肪','%'],['height','身長','cm'],['chest','胸囲','cm'],['arm','腕','cm'],['waist','ウエスト','cm'],['hip','腰(ヒップ)','cm'],['thigh','もも','cm'],['calf','ふくらはぎ','cm']];
+  function bodyMetric(f){for(var i=0;i<BODY_METRICS.length;i++)if(BODY_METRICS[i][0]===f)return BODY_METRICS[i];return [f,f,''];}
   function series(metric){
-    if(metric==='__bw'){return S.body.slice().sort(function(a,b){return a.date<b.date?-1:1;}).map(function(b){return{date:b.date,v:b.weight};});}
+    if(metric&&metric.indexOf('body:')===0){var f=metric.slice(5);return S.body.slice().sort(function(a,b){return a.date<b.date?-1:1;}).filter(function(b){return b[f]!=null&&b[f]!=='';}).map(function(b){return{date:b.date,v:+b[f]};});}
     var byDate={};S.logs.filter(function(l){return l.exercise===metric;}).forEach(function(l){var e=e1rm(l.weight,l.reps);if(!byDate[l.date]||e>byDate[l.date])byDate[l.date]=e;});
     return Object.keys(byDate).sort().map(function(d){return{date:d,v:Math.round(byDate[d])};});
   }
   function renderGraphSel(){
     var sel=document.getElementById('graphSel');var cur=sel.value;sel.innerHTML='';
-    var o=document.createElement('option');o.value='__bw';o.textContent='体重';sel.appendChild(o);
-    var exs={};S.logs.forEach(function(l){exs[l.exercise]=1;});Object.keys(exs).sort().forEach(function(ex){var op=document.createElement('option');op.value=ex;op.textContent=ex;sel.appendChild(op);});
-    if(cur)sel.value=cur;if(!sel.value)sel.value='__bw';
+    BODY_METRICS.forEach(function(m){if(S.body.some(function(b){return b[m[0]]!=null&&b[m[0]]!=='';})){var o=document.createElement('option');o.value='body:'+m[0];o.textContent=m[1];sel.appendChild(o);}});
+    var exs={};S.logs.forEach(function(l){exs[l.exercise]=1;});Object.keys(exs).sort().forEach(function(ex){var op=document.createElement('option');op.value=ex;op.textContent=ex+'（1RM）';sel.appendChild(op);});
+    if(!sel.options.length){var o2=document.createElement('option');o2.value='';o2.textContent='記録なし';sel.appendChild(o2);}
+    if(cur)sel.value=cur;if(!sel.value)sel.value=sel.options[0]?sel.options[0].value:'';
   }
   function renderGraph(){
     renderGraphSel();
@@ -607,10 +620,19 @@ svg.chart{width:100%;height:170px;display:block;}
       +'<text x="'+(W-pad)+'" y="'+(H-pad+12)+'" font-size="10" fill="#9ca3af" text-anchor="end">'+data[data.length-1].date.slice(5)+'</text></svg>';
     box.innerHTML=svg;
     var ch=data[data.length-1].v-data[0].v;
-    var unit=sel.value==='__bw'?'体重':'推定1RM';
-    stat.textContent=unit+' 最新 '+fmtW(data[data.length-1].v)+'kg ／ 期間変化 '+(ch>=0?'+':'')+fmtW(ch)+'kg（'+data.length+'回）';
+    var sv=sel.value,bm=(sv&&sv.indexOf('body:')===0)?bodyMetric(sv.slice(5)):null;
+    var lbl=bm?bm[1]:'推定1RM',u=bm?bm[2]:'kg';
+    stat.textContent=lbl+' 最新 '+fnum(data[data.length-1].v)+u+' ／ 期間変化 '+(ch>=0?'+':'')+fnum(ch)+u+'（'+data.length+'回）';
+    renderRmList();
   }
   document.getElementById('graphSel').addEventListener('change',renderGraph);
+  function renderRmList(){var box=document.getElementById('rmList');if(!box)return;var exs={};S.logs.forEach(function(l){var e=e1rm(l.weight,l.reps);if(!exs[l.exercise])exs[l.exercise]={e:0,w:0};if(e>exs[l.exercise].e)exs[l.exercise].e=e;if(l.weight>exs[l.exercise].w)exs[l.exercise].w=l.weight;});
+    var arr=Object.keys(exs).map(function(k){return {name:k,e:exs[k].e,w:exs[k].w};}).sort(function(a,b){return b.e-a.e;});
+    if(!arr.length){box.innerHTML='<div class="faint" style="font-size:13px;">記録がまだありません。</div>';return;}
+    box.innerHTML='';arr.forEach(function(it){var r=document.createElement('div');r.className='row';r.style.cssText='justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--line);cursor:pointer;';r.innerHTML='<span style="font-size:14px;">'+it.name+'</span><span class="row" style="gap:10px;font-size:13px;"><span class="faint">最高'+fnum(it.w)+'kg</span><b>1RM '+Math.round(it.e)+'kg</b></span>';r.addEventListener('click',function(){var sel=document.getElementById('graphSel');sel.value=it.name;renderGraph();window.scrollTo(0,0);});box.appendChild(r);});}
+  function todayBody(){return S.body.filter(function(b){return b.date===today;})[0];}
+  function renderBodyInputs(){var box=document.getElementById('bodyInputs');if(!box)return;var tb=todayBody()||{};box.innerHTML='';var grid=document.createElement('div');grid.style.cssText='display:grid;grid-template-columns:1fr 1fr;gap:8px;';BODY_METRICS.forEach(function(m){var w=document.createElement('label');w.style.cssText='display:flex;align-items:center;gap:5px;font-size:13px;';var sp=document.createElement('span');sp.style.cssText='min-width:58px;color:var(--muted);';sp.textContent=m[1];var inp=document.createElement('input');inp.type='number';inp.inputMode='decimal';inp.step='0.1';inp.id='bm_'+m[0];inp.style.cssText='width:100%;min-width:0;padding:8px;border:1px solid var(--line);border-radius:8px;text-align:center;';if(tb[m[0]]!=null)inp.value=tb[m[0]];var u=document.createElement('span');u.className='faint';u.style.fontSize='12px';u.textContent=m[2];w.appendChild(sp);w.appendChild(inp);w.appendChild(u);grid.appendChild(w);});box.appendChild(grid);}
+  document.getElementById('saveBody').addEventListener('click',function(){var rec=todayBody();if(!rec){rec={date:today};S.body.push(rec);}var any=false;BODY_METRICS.forEach(function(m){var el=document.getElementById('bm_'+m[0]);var v=parseFloat(el.value);if(!isNaN(v)){rec[m[0]]=v;any=true;}});if(!any){toast('数値を入力してください');return;}save();renderBodyInputs();toast('サイズを保存しました ✓');});
 
   var setDay=document.getElementById('setDay');
   function renderSet(){
@@ -771,7 +793,7 @@ svg.chart{width:100%;height:170px;display:block;}
   function go(v){
     ['rec','kcal','cal','graph','body','report','set'].forEach(function(x){document.getElementById('view-'+x).classList.toggle('hide',x!==v);document.getElementById('tab-'+x).classList.toggle('active',x===v);});
     document.querySelector('header').style.display=(v==='rec')?'flex':'none';
-    if(v==='kcal')renderKcal();if(v==='cal')renderCal();if(v==='graph')renderGraph();if(v==='body')renderBody();if(v==='report')renderReport();if(v==='set')renderSet();
+    if(v==='kcal')renderKcal();if(v==='cal')renderCal();if(v==='graph'){renderGraph();renderRmList();}if(v==='body'){renderBody();renderBodyInputs();}if(v==='report')renderReport();if(v==='set')renderSet();
   }
   window.go=go;
 
