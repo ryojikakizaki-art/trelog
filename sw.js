@@ -1,4 +1,4 @@
-var C = 'trelog-v31';
+var C = 'trelog-v32';
 var ASSETS = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './snd-warn.mp3', './snd-go.mp3'];
 self.addEventListener('install', function (e) {
   e.waitUntil(caches.open(C).then(function (c) { return c.addAll(ASSETS); }));
