@@ -135,6 +135,9 @@ svg.chart{width:100%;height:170px;display:block;}
 .fmadd{width:34px;height:34px;border-radius:50%;border:none;background:var(--rest);color:#fff;font-size:22px;font-weight:700;line-height:1;flex:none;}
 .fmsec{font-size:12px;color:var(--muted);font-weight:600;margin:10px 0 2px;}
 .qy{width:52px;padding:6px;border:1px solid var(--line);border-radius:8px;text-align:center;font-size:14px;}
+.fmrow.added{background:var(--rest-bg);border:1px solid #bfe6d7;border-bottom:1px solid #bfe6d7;border-radius:10px;padding:8px 10px;margin-bottom:6px;}
+.fmsec.addedsec{color:var(--rest);}
+#foodModalList .addwrap{margin-top:4px;border-top:2px solid var(--line);padding-top:6px;}
 .bodyfig{display:flex;gap:10px;align-items:flex-start;}
 .figcol{flex:1;min-width:0;}
 .figcap{text-align:center;font-size:12px;color:var(--faint);margin-bottom:2px;}
@@ -177,6 +180,21 @@ svg.chart{width:100%;height:170px;display:block;}
     <div id="setItems"></div>
     <div class="fmsec">食材を追加</div>
     <input id="setSearch" class="txt" placeholder="食材名で検索" style="margin-bottom:6px;">
+    <details class="cust" style="margin:0 0 8px;"><summary>一覧に無い食材を手入力で作成</summary>
+      <div class="inrow" style="margin-top:6px;flex-wrap:wrap;">
+        <input class="txt" id="setNewName" placeholder="食材名" style="flex:1;min-width:84px;width:auto;">
+        <input id="setNewAmt" type="number" inputmode="decimal" placeholder="量" style="width:54px;">
+        <input id="setNewUnit" class="txt" value="g" style="width:46px;">
+      </div>
+      <div class="inrow" style="margin-top:6px;flex-wrap:wrap;">
+        <input id="setNewK" type="number" inputmode="numeric" placeholder="kcal" style="width:60px;">
+        <input id="setNewP" type="number" inputmode="numeric" placeholder="P" style="width:46px;">
+        <input id="setNewF" type="number" inputmode="numeric" placeholder="F" style="width:46px;">
+        <input id="setNewC" type="number" inputmode="numeric" placeholder="C" style="width:46px;">
+        <button class="btn sm primary" id="setNewAdd">作成して追加</button>
+      </div>
+      <div class="faint" style="font-size:11px;margin-top:4px;">入力した量・栄養が「一食分」として登録されます（Myアイテムにも保存）。</div>
+    </details>
     <div id="setPick"></div>
   </div>
   <div class="fmfoot"><button id="setDelBtn" class="btn" style="color:var(--danger);">削除</button><button id="setSave" class="btn primary">保存</button></div>
@@ -346,7 +364,7 @@ svg.chart{width:100%;height:170px;display:block;}
     <button class="btn" id="resetProg" style="color:var(--danger);">メニューを初期設定に戻す</button>
   </section>
 
-  <div class="ver" id="ver">v26</div>
+  <div class="ver" id="ver">v27</div>
 </div>
 
 <div class="timer" id="timer">
@@ -379,7 +397,15 @@ svg.chart{width:100%;height:170px;display:block;}
     ['そば(ゆで)',130,4.8,1,24,'主食',100,'g'],['食パン',149,5,2.5,28,'主食',1,'枚'],
     ['オートミール',114,4,2.3,20,'主食',30,'g'],['さつまいも',132,1,0.2,32,'主食',100,'g'],
     ['ブロッコリー',33,4,0.5,5,'野菜',100,'g'],['サラダ(野菜)',30,2,0.2,5,'野菜',1,'皿'],
-    ['バナナ',86,1.1,0.2,22,'間食',1,'本'],['アーモンド',60,2.2,5.2,2,'間食',10,'g'],['オリーブ油',111,0,12,0,'油脂',1,'大さじ']
+    ['バナナ',86,1.1,0.2,22,'間食',1,'本'],['アーモンド',60,2.2,5.2,2,'間食',10,'g'],['オリーブ油',111,0,12,0,'油脂',1,'大さじ'],
+    ['鶏ささみ',98,23,0.8,0,'たんぱく源',100,'g'],['さば',202,21,12,0,'たんぱく源',100,'g'],['まぐろ赤身',115,26,1.4,0,'たんぱく源',100,'g'],
+    ['えび',82,18,0.3,0,'たんぱく源',100,'g'],['ちくわ',60,5,0.5,8,'たんぱく源',1,'本'],['ハム',20,2,1.3,0.3,'たんぱく源',1,'枚'],
+    ['ベーコン',45,1.3,4,0,'たんぱく源',1,'枚'],['ソーセージ',60,3,5.5,1,'たんぱく源',1,'本'],['枝豆',125,11,6,8,'たんぱく源',100,'g'],
+    ['スライスチーズ',55,4,4.3,0.3,'乳製品',1,'枚'],['牛乳',134,6.6,7.6,9.6,'乳製品',200,'ml'],['豆乳',90,7,4,6,'乳製品',200,'ml'],['ヨーグルト(無糖)',62,3.6,3,4.9,'乳製品',100,'g'],
+    ['キャベツの千切り',12,0.7,0.1,2.6,'野菜',50,'g'],['レタス',11,0.6,0.1,2.8,'野菜',100,'g'],['トマト',30,1.1,0.2,7,'野菜',1,'個'],['きゅうり',14,1,0.1,3,'野菜',1,'本'],
+    ['玉ねぎ',33,1,0.1,8,'野菜',100,'g'],['にんじん',35,0.7,0.2,8.5,'野菜',100,'g'],['ほうれん草',18,2.2,0.4,3,'野菜',100,'g'],['キムチ',23,1.3,0.1,3,'野菜',50,'g'],['味噌汁',40,3,1.5,4,'その他',1,'杯'],
+    ['りんご',138,0.5,0.5,36,'間食',1,'個'],['みかん',39,0.5,0,10,'間食',1,'個'],['ブルーベリー',49,0.5,0.1,12,'間食',100,'g'],['アボカド',262,3,25,9,'間食',1,'個'],
+    ['じゃがいも',76,1.6,0.1,17,'主食',100,'g'],['かぼちゃ',78,1.6,0.1,17,'主食',100,'g'],['おにぎり',180,3,0.5,40,'主食',1,'個'],['うどん(ゆで)',210,5,0.8,43,'主食',200,'g'],['パスタ(乾)',347,13,2,69,'主食',100,'g'],['餅',118,2,0.4,25,'主食',1,'個']
   ];
   var DEFAULT_SETS=[
     ['朝食セット',[['鶏むね肉',100],['ゆで卵',2],['オートミール',40],['プロテイン',1]]],
@@ -546,7 +572,7 @@ svg.chart{width:100%;height:170px;display:block;}
   function recentForSlot(slot){var seen={},out=[];S.meals.slice().reverse().forEach(function(m){if(slot&&(m.slot||'他')!==slot)return;if(seen[m.name])return;seen[m.name]=1;var ba=m.baseAmt||1,amt=(m.amount!=null?m.amount:1);var base=m.base||[(+m.kcal||0)/(amt||1),(+m.p||0)/(amt||1),(+m.f||0)/(amt||1),(+m.c||0)/(amt||1)];out.push({food:[m.name,base[0],base[1],base[2],base[3],'履歴',ba,m.unit||'食'],amount:amt});});return out;}
   function openFoodModal(slot){modalSlot=slot;var s=document.getElementById('foodSearch');if(s)s.value='';document.getElementById('fmTitle').textContent=slotLabel(slot)+'に追加';document.getElementById('foodModal').classList.add('open');renderFoodModal();}
   function closeFoodModal(){document.getElementById('foodModal').classList.remove('open');renderKcal();}
-  function loggedRowInModal(m){var r=document.createElement('div');r.className='fmrow';
+  function loggedRowInModal(m){var r=document.createElement('div');r.className='fmrow added';
     var nm=document.createElement('span');nm.style.cssText='flex:1;min-width:0;';nm.innerHTML='<span style="font-size:14px;">'+m.name+'</span> <span class="faint" style="font-size:11px;">'+Math.round(m.kcal)+'kcal</span>';
     var ai=document.createElement('input');ai.type='number';ai.className='qy';ai.value=(m.amount!=null?m.amount:1);ai.step=((m.unit||'')==='g'?10:0.5);
     ai.addEventListener('change',function(){var na=parseFloat(ai.value);if(!(na>0)){ai.value=m.amount||1;return;}rescaleMeal(m,na);save();renderFoodModal();});
@@ -560,7 +586,7 @@ svg.chart{width:100%;height:170px;display:block;}
     var q=(document.getElementById('foodSearch').value||'').trim();
     var box=document.getElementById('foodModalList');box.innerHTML='';
     var added=todayFoods().filter(function(m){return (m.slot||'他')===modalSlot;});
-    if(added.length){var h0=document.createElement('div');h0.className='fmsec';h0.textContent='追加済み（'+slotLabel(modalSlot)+'）— 量を直接編集・×で削除';box.appendChild(h0);added.forEach(function(m){box.appendChild(loggedRowInModal(m));});}
+    if(added.length){var h0=document.createElement('div');h0.className='fmsec addedsec';h0.textContent='✓ 追加済み（'+slotLabel(modalSlot)+'）— 量を直接編集・×で削除';box.appendChild(h0);added.forEach(function(m){box.appendChild(loggedRowInModal(m));});var dv=document.createElement('div');dv.style.cssText='border-top:2px solid var(--line);margin:10px 0 2px;padding-top:8px;font-size:12px;color:var(--muted);font-weight:600;';dv.textContent='↓ ここから食材を選んで追加';box.appendChild(dv);}
     function addRow(food,amt){var r=document.createElement('div');r.className='fmrow';var nm=document.createElement('span');nm.style.cssText='flex:1;min-width:0;font-size:14px;';nm.textContent=food[0];var ai=document.createElement('input');ai.type='number';ai.className='qy';ai.value=amt;ai.step=(food[7]==='g'?10:0.5);var u=document.createElement('span');u.className='faint';u.style.fontSize='12px';u.textContent=food[7];var b=document.createElement('button');b.className='fmadd';b.textContent='＋';b.addEventListener('click',function(){var a=parseFloat(ai.value)||food[6];addFoodRow(food,a,modalSlot);save();renderFoodModal();});r.appendChild(nm);r.appendChild(ai);r.appendChild(u);r.appendChild(b);return r;}
     var seenN={};
     var recS=recentForSlot(modalSlot).filter(function(x){return !q||x.food[0].indexOf(q)>-1;});
@@ -580,13 +606,13 @@ svg.chart{width:100%;height:170px;display:block;}
     var box=document.getElementById('setItems');box.innerHTML='';
     if(!editSet.items.length)box.innerHTML='<div class="faint" style="font-size:13px;padding:6px 0;">下の食材リストから追加してください。</div>';
     editSet.items.forEach(function(it,ii){var fd=findFood(it.food);var r=document.createElement('div');r.className='fmrow';
-      var nm=document.createElement('span');nm.style.cssText='flex:1;min-width:0;font-size:14px;';nm.textContent=it.food+(fd?'':'(無)');
+      var nm=document.createElement('span');nm.style.cssText='flex:1;min-width:0;font-size:14px;';nm.innerHTML=it.food+(fd?' <span class="faint" style="font-size:11px;">('+Math.round(fd[1]*it.amount/(fd[6]||1))+'kcal)</span>':'(無)');
       var ai=document.createElement('input');ai.type='number';ai.className='qy';ai.value=it.amount;ai.step=(fd&&fd[7]==='g'?10:0.5);ai.addEventListener('change',function(){var a=parseFloat(ai.value);if(a>0)it.amount=a;});
       var u=document.createElement('span');u.className='faint';u.style.fontSize='12px';u.textContent=fd?fd[7]:'';
       var del=document.createElement('button');del.className='del2';del.textContent='×';del.addEventListener('click',function(){editSet.items.splice(ii,1);renderSetEditor();});
       r.appendChild(nm);r.appendChild(ai);r.appendChild(u);r.appendChild(del);box.appendChild(r);});
     var pick=document.getElementById('setPick');pick.innerHTML='';var q=(document.getElementById('setSearch').value||'').trim();
-    allFoods().filter(function(f){return !q||f[0].indexOf(q)>-1;}).forEach(function(f){var r=document.createElement('div');r.className='fmrow';var nm=document.createElement('span');nm.style.cssText='flex:1;min-width:0;font-size:14px;';nm.textContent=f[0];var b=document.createElement('button');b.className='fmadd';b.textContent='＋';b.addEventListener('click',function(){editSet.items.push({food:f[0],amount:f[6]});renderSetEditor();});r.appendChild(nm);r.appendChild(b);pick.appendChild(r);});
+    allFoods().filter(function(f){return !q||f[0].indexOf(q)>-1;}).forEach(function(f){var r=document.createElement('div');r.className='fmrow';var nm=document.createElement('span');nm.style.cssText='flex:1;min-width:0;font-size:14px;';nm.innerHTML=f[0]+' <span class="faint" style="font-size:11px;">('+f[6]+f[7]+'・'+f[1]+'kcal)</span>';var b=document.createElement('button');b.className='fmadd';b.textContent='＋';b.addEventListener('click',function(){editSet.items.push({food:f[0],amount:f[6]});renderSetEditor();});r.appendChild(nm);r.appendChild(b);pick.appendChild(r);});
   }
   function trainMinAuto(){return Math.max(0,allTodaySets().length*3.5);}
   function renderKcal(){
@@ -633,6 +659,7 @@ svg.chart{width:100%;height:170px;display:block;}
   document.getElementById('setSearch').addEventListener('input',renderSetEditor);
   document.getElementById('setSave').addEventListener('click',function(){var nm=document.getElementById('setName').value.trim();if(!nm){alert('セット名を入力してください');return;}editSet.name=nm;if(editSetIdx<0)S.customSets.push(editSet);else S.customSets[editSetIdx]=editSet;save();closeSetEditor();});
   document.getElementById('setDelBtn').addEventListener('click',function(){if(editSetIdx<0)return;if(confirm('このセットを削除しますか？')){S.customSets.splice(editSetIdx,1);save();closeSetEditor();}});
+  document.getElementById('setNewAdd').addEventListener('click',function(){var n=document.getElementById('setNewName').value.trim();if(!n)return;var amt=parseFloat(document.getElementById('setNewAmt').value)||1,un=document.getElementById('setNewUnit').value.trim()||'g',k=parseFloat(document.getElementById('setNewK').value)||0,p=parseFloat(document.getElementById('setNewP').value)||0,f=parseFloat(document.getElementById('setNewF').value)||0,c=parseFloat(document.getElementById('setNewC').value)||0;if(!findFood(n))S.customFoods.push({name:n,kcal:k,p:p,f:f,c:c,baseAmt:amt,unit:un});editSet.items.push({food:n,amount:amt});['setNewName','setNewAmt','setNewK','setNewP','setNewF','setNewC'].forEach(function(id){document.getElementById(id).value='';});document.getElementById('setNewUnit').value='g';renderSetEditor();});
   document.getElementById('addWalk').addEventListener('click',function(){var mets=parseFloat(document.getElementById('walkPace').value),min=parseFloat(document.getElementById('walkMin').value);if(!(min>0))return;var kcal=Math.round(mets*weightOn()*min/60);var label=document.getElementById('walkPace').selectedOptions[0].textContent;S.cardio.push({date:today,type:label,minutes:min,kcal:kcal});save();document.getElementById('walkMin').value='';renderKcal();});
   document.getElementById('saveTrainMin').addEventListener('click',function(){var v=parseFloat(document.getElementById('trainMin').value);if(v>=0)S.trainMin[today]=v;else delete S.trainMin[today];save();renderKcal();});
 
