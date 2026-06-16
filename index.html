@@ -120,6 +120,11 @@ svg.chart{width:100%;height:170px;display:block;}
 .expick{display:flex;flex-wrap:wrap;gap:6px;}
 .expick:empty{display:none;}
 .expick .ec{padding:6px 10px;border:1px solid var(--rest);background:#fff;border-radius:8px;font-size:13px;color:var(--rest);}
+.cust{margin-top:8px;}
+.cust>summary{cursor:pointer;color:var(--gold);font-weight:600;font-size:13px;}
+.msel{display:flex;flex-wrap:wrap;gap:5px;}
+.msel .mc{padding:5px 9px;border:1px solid var(--line);background:#fff;border-radius:8px;font-size:12px;color:var(--muted);}
+.msel .mc.on{background:var(--gold);color:#fff;border-color:var(--gold);}
 .bodyfig{display:flex;gap:10px;align-items:flex-start;}
 .figcol{flex:1;min-width:0;}
 .figcap{text-align:center;font-size:12px;color:var(--faint);margin-bottom:2px;}
@@ -152,6 +157,10 @@ svg.chart{width:100%;height:170px;display:block;}
           <input id="recNewRest" type="number" inputmode="numeric" placeholder="休憩秒" style="width:84px;">
           <button class="btn sm primary" id="recAddEx">追加</button>
         </div>
+        <details class="cust"><summary>自作種目の対応部位を指定（任意）</summary>
+          <div class="muted" style="font-size:12px;margin:6px 0 4px;">この種目が効く筋肉を選ぶと、カラダ図に反映されます（複数選択可）。一覧に無い種目を入れる時に。</div>
+          <div id="muscleSel" class="msel"></div>
+        </details>
         <datalist id="exCatalog"></datalist>
       </div>
     </details>
@@ -285,7 +294,7 @@ svg.chart{width:100%;height:170px;display:block;}
     <button class="btn" id="resetProg" style="color:var(--danger);">メニューを初期設定に戻す</button>
   </section>
 
-  <div class="ver" id="ver">v20</div>
+  <div class="ver" id="ver">v21</div>
 </div>
 
 <div class="timer" id="timer">
@@ -312,7 +321,7 @@ svg.chart{width:100%;height:170px;display:block;}
   var today=todayStr();
   function load(){try{return JSON.parse(localStorage.getItem(KEY))||{}}catch(e){return{}}}
   var S=load();
-  S.logs=S.logs||[];S.body=S.body||[];S.cardio=S.cardio||[];S.meals=S.meals||[];S.notes=S.notes||{};S.trainMin=S.trainMin||{};if(S.voiceText===undefined)S.voiceText='休憩終了。次のセットだ。';if(S.alarmType===undefined)S.alarmType='standard';
+  S.logs=S.logs||[];S.body=S.body||[];S.cardio=S.cardio||[];S.meals=S.meals||[];S.notes=S.notes||{};S.trainMin=S.trainMin||{};if(S.voiceText===undefined)S.voiceText='休憩終了。次のセットだ。';if(S.alarmType===undefined)S.alarmType='standard';S.customEx=S.customEx||{};
   if(!S.program){S.program=JSON.parse(JSON.stringify(DEFAULT_PROGRAM));}
   function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}}
 
@@ -583,7 +592,7 @@ svg.chart{width:100%;height:170px;display:block;}
   document.getElementById('addDay').addEventListener('click',function(){var name=(prompt('追加する日の名前は？','Day'+(Object.keys(S.program).length+1))||'').trim();if(!name)return;if(S.program[name]){alert('同じ名前の日があります');return;}S.program[name]=[];daySel.value=name;refreshDays(name);});
   document.getElementById('renameDay').addEventListener('click',function(){var oldK=setDay.value;var name=(prompt('「'+oldK+'」の新しい名前は？',oldK)||'').trim();if(!name||name===oldK)return;if(S.program[name]){alert('同じ名前の日があります');return;}var np={};Object.keys(S.program).forEach(function(k){np[k===oldK?name:k]=S.program[k];});S.program=np;if(daySel.value===oldK)daySel.value=name;refreshDays(name);});
   document.getElementById('delDay').addEventListener('click',function(){var k=setDay.value;if(Object.keys(S.program).length<=1){alert('最後の1日は削除できません');return;}if(confirm('「'+k+'」を削除しますか？（この日のメニュー構成のみ削除・記録データは残ります）')){delete S.program[k];refreshDays();}});
-  document.getElementById('recAddEx').addEventListener('click',function(){var n=document.getElementById('recNewEx').value.trim(),r=parseInt(document.getElementById('recNewRest').value,10);if(!n)return;S.program[daySel.value].push([n,(r>=0?r:90),'']);openEx=n;document.getElementById('recNewEx').value='';document.getElementById('recNewRest').value='';save();renderRec();buildExPicker();});
+  document.getElementById('recAddEx').addEventListener('click',function(){var n=document.getElementById('recNewEx').value.trim(),r=parseInt(document.getElementById('recNewRest').value,10);if(!n)return;var sel=Array.prototype.map.call(document.querySelectorAll('#muscleSel .mc.on'),function(c){return c.getAttribute('data-k');});if(sel.length)S.customEx[n]=sel;S.program[daySel.value].push([n,(r>=0?r:90),'']);openEx=n;document.getElementById('recNewEx').value='';document.getElementById('recNewRest').value='';save();renderRec();buildExPicker();});
   var EXCAT={
     '胸':['ベンチプレス','インクラインDBプレス','ダンベルフライ','チェストフライ','ディップス','プッシュアップ'],
     '肩':['ショルダープレス','DBショルダープレス','サイドレイズ','フロントレイズ','リアレイズ','フェイスプル'],
@@ -596,21 +605,23 @@ svg.chart{width:100%;height:170px;display:block;}
   };
   function inferRest(n){if(/デッドリフト|スクワット|ベンチプレス/.test(n))return 180;if(/プレス|ロー|プルダウン|懸垂|ランジ|ヒップスラスト|ディップ/.test(n))return 120;return 75;}
   function buildExPicker(){
-    var dl=document.getElementById('exCatalog');if(!dl)return;
-    var all={};Object.keys(S.program).forEach(function(d){(S.program[d]||[]).forEach(function(r){all[r[0]]=1;});});Object.keys(EXCAT).forEach(function(p){EXCAT[p].forEach(function(n){all[n]=1;});});
-    dl.innerHTML=Object.keys(all).map(function(n){return '<option value="'+n.replace(/"/g,'')+'"></option>';}).join('');
-    var pc=document.getElementById('partChips'),exp=document.getElementById('exPick');if(!pc||!exp)return;pc.innerHTML='';exp.innerHTML='';
-    Object.keys(EXCAT).forEach(function(part){
-      var b=document.createElement('button');b.type='button';b.className='pc';b.textContent=part;
-      b.addEventListener('click',function(){
-        Array.prototype.forEach.call(pc.children,function(c){c.classList.remove('on');});b.classList.add('on');
-        exp.innerHTML='';
-        EXCAT[part].forEach(function(name){var e=document.createElement('button');e.type='button';e.className='ec';e.textContent=name;e.addEventListener('click',function(){var ne=document.getElementById('recNewEx'),nr=document.getElementById('recNewRest');ne.value=name;if(!nr.value)nr.value=inferRest(name);ne.focus();});exp.appendChild(e);});
+    var parts={};Object.keys(EXCAT).forEach(function(p){parts[p]=EXCAT[p];});
+    var cu=Object.keys(S.customEx||{});if(cu.length)parts['マイ種目']=cu;
+    var dl=document.getElementById('exCatalog');
+    if(dl){var all={};Object.keys(S.program).forEach(function(d){(S.program[d]||[]).forEach(function(r){all[r[0]]=1;});});Object.keys(parts).forEach(function(p){parts[p].forEach(function(n){all[n]=1;});});dl.innerHTML=Object.keys(all).map(function(n){return '<option value="'+n.replace(/"/g,'')+'"></option>';}).join('');}
+    var pc=document.getElementById('partChips'),exp=document.getElementById('exPick');
+    if(pc&&exp){pc.innerHTML='';exp.innerHTML='';
+      Object.keys(parts).forEach(function(part){
+        var b=document.createElement('button');b.type='button';b.className='pc';b.textContent=part;
+        b.addEventListener('click',function(){Array.prototype.forEach.call(pc.children,function(c){c.classList.remove('on');});b.classList.add('on');exp.innerHTML='';
+          parts[part].forEach(function(name){var e=document.createElement('button');e.type='button';e.className='ec';e.textContent=name;e.addEventListener('click',function(){var ne=document.getElementById('recNewEx'),nr=document.getElementById('recNewRest');ne.value=name;if(!nr.value)nr.value=inferRest(name);ne.focus();});exp.appendChild(e);});
+        });
+        pc.appendChild(b);
       });
-      pc.appendChild(b);
-    });
+    }
+    var ms=document.getElementById('muscleSel');
+    if(ms){ms.innerHTML='';['delt_front','delt_side','delt_rear','chest_up','chest_low','biceps','triceps','forearms','traps','lats','lowerback','abs','obliques','quads','adductors','hamstrings','glutes','calves'].forEach(function(k){var c=document.createElement('button');c.type='button';c.className='mc';c.setAttribute('data-k',k);c.textContent=(typeof MNAME!=='undefined'&&MNAME[k])||k;c.addEventListener('click',function(){c.classList.toggle('on');});ms.appendChild(c);});}
   }
-  buildExPicker();
   var alarmTypeEl=document.getElementById('alarmType');
   var voiceTextEl=document.getElementById('voiceText');
   var voiceRowEl=document.getElementById('voiceRow');
@@ -622,7 +633,7 @@ svg.chart{width:100%;height:170px;display:block;}
 
   var MNAME={delt_front:'肩前部',delt_side:'肩中部',delt_rear:'肩後部',chest_up:'胸(上部)',chest_low:'胸(下部)',biceps:'二頭',triceps:'三頭',forearms:'前腕',traps:'僧帽',lats:'広背',lowerback:'下背',abs:'腹直',obliques:'腹斜',quads:'大腿四頭',adductors:'内転筋',hamstrings:'ハム',glutes:'臀',calves:'カーフ'};
   var MAJORS=['chest_up','chest_low','delt_front','delt_side','delt_rear','lats','traps','biceps','triceps','abs','quads','hamstrings','glutes','calves'];
-  function musclesFor(name){var n=name||'';function has(){for(var i=0;i<arguments.length;i++){if(n.indexOf(arguments[i])>-1)return true;}return false;}var m=[];
+  function musclesFor(name){var __cu=S.customEx&&S.customEx[name];if(__cu&&__cu.length)return __cu.slice();var n=name||'';function has(){for(var i=0;i<arguments.length;i++){if(n.indexOf(arguments[i])>-1)return true;}return false;}var m=[];
     if(has('ベンチ')&&!has('クローズ'))m.push('chest_low','chest_up','triceps','delt_front');
     if(has('クローズグリップ'))m.push('triceps','chest_low');
     if(has('インクライン'))m.push('chest_up','delt_front','triceps');
@@ -679,7 +690,7 @@ svg.chart{width:100%;height:170px;display:block;}
   }
   window.go=go;
 
-  renderRec();go('rec');
+  renderRec();go('rec');buildExPicker();
   if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(function(){});}
   if('Notification' in window&&Notification.permission==='granted')ensurePush();
 })();
