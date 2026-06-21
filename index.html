@@ -92,6 +92,7 @@ svg.chart{width:100%;height:170px;display:block;}
 .exc .ehead{display:flex;align-items:center;justify-content:space-between;gap:8px;cursor:pointer;}
 .ehmeta{display:flex;align-items:center;gap:7px;flex-shrink:0;}
 .pr1rm{font-size:11px;color:var(--gold);background:#faf6ea;border:1px solid #ecdfb8;border-radius:8px;padding:2px 7px;white-space:nowrap;font-weight:600;}
+.lastd{font-size:11px;color:var(--muted);background:#f3f4f6;border-radius:8px;padding:2px 7px;white-space:nowrap;}
 .estat{font-size:12px;border-radius:8px;padding:2px 9px;white-space:nowrap;font-weight:600;}
 .estat.n{color:var(--muted);background:#f3f4f6;}
 .estat.p{color:#0f6e56;background:var(--rest-bg);}
@@ -310,7 +311,7 @@ svg.chart{width:100%;height:170px;display:block;}
     <button class="btn" id="resetProg" style="color:var(--danger);">メニューを初期設定に戻す</button>
   </section>
 
-  <div class="ver" id="ver">v32</div>
+  <div class="ver" id="ver">v34</div>
 </div>
 
 <div class="timer" id="timer">
@@ -370,6 +371,7 @@ svg.chart{width:100%;height:170px;display:block;}
   function fmtW(w){return (Math.round(w*10)/10).toString();}
   function weightOn(){var b=S.body.slice().sort(function(a,b){return a.date<b.date?-1:1;});return b.length?b[b.length-1].weight:70;}
   function days(d){var n=Math.round((new Date(today)-new Date(d))/86400000);return n===0?'今日':n+'日前';}
+  function fmtDate(d){var x=new Date(d+'T00:00:00');var w=['日','月','火','水','木','金','土'][x.getDay()];return (x.getMonth()+1)+'/'+x.getDate()+'('+w+')';}
   function lastSession(ex){var p=S.logs.filter(function(l){return l.exercise===ex&&l.date<today;});if(!p.length)return null;var d=p.map(function(l){return l.date;}).sort().slice(-1)[0];return{date:d,sets:p.filter(function(l){return l.date===d;}).sort(function(a,b){return a.setNo-b.setNo;})};}
   function todaySets(ex){return S.logs.filter(function(l){return l.exercise===ex&&l.date===today;}).sort(function(a,b){return a.setNo-b.setNo;});}
   function allTodaySets(){return S.logs.filter(function(l){return l.date===today;});}
@@ -410,9 +412,10 @@ svg.chart{width:100%;height:170px;display:block;}
       var card=document.createElement('div');card.className='card exc'+(isOpen?' open':'')+(done?' done':'');
       var stat=ts.length?(done?'✓ 完了':ts.length+'/'+target+'セット'):'未';
       var statCls=done?'d':(ts.length?'p':'n');
-      var head='<div class="ehead"><span class="exname">'+ex+'</span><span class="ehmeta">'+(be>0?'<span class="pr1rm">1RM最高 '+Math.round(be)+'kg</span>':'')+'<span class="estat '+statCls+'">'+stat+'</span></span></div>';
+      var lastChip=ls?'<span class="lastd">前回 '+fmtDate(ls.date)+'</span>':'';
+      var head='<div class="ehead"><span class="exname">'+ex+'</span><span class="ehmeta">'+lastChip+(be>0?'<span class="pr1rm">1RM最高 '+Math.round(be)+'kg</span>':'')+'<span class="estat '+statCls+'">'+stat+'</span></span></div>';
       if(!isOpen){card.innerHTML=head;card.querySelector('.ehead').addEventListener('click',function(){openEx=ex;renderRec();});list.appendChild(card);return;}
-      var prev=ls?('前回 '+days(ls.date)+'：<b>'+ls.sets.map(function(s){return fmtW(s.weight)+'×'+s.reps;}).join(', ')+'</b>'):'前回の記録なし';
+      var prev=ls?('前回 '+fmtDate(ls.date)+'・'+days(ls.date)+'<br><b>'+ls.sets.map(function(s){return fmtW(s.weight)+'×'+s.reps;}).join(', ')+'</b>'):'前回の記録なし';
       var rec=recommend(ex,scheme,ls);
       var recLine=rec?('<div class="reco">おすすめ <b>'+fmtW(rec.weight)+'kg × '+rec.reps+'回</b>（'+target+'セット）<br><span class="faint">'+rec.note+'</span></div>'):'<div class="reco faint">初回はフォーム重視で余裕をもって。次回から「おすすめ」を出します。</div>';
       var lastT=ts.length?ts[ts.length-1]:null;
