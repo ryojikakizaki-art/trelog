@@ -105,6 +105,11 @@ svg.chart{width:100%;height:170px;display:block;}
 .iginput input{width:70px;}
 .recall{flex:none;width:30px;border:1px solid var(--line);background:#fff;color:var(--rest);border-radius:8px;font-size:17px;font-weight:700;line-height:1;padding:0;}
 .recall:active{background:var(--rest-bg);}
+.bwtog{flex:none;border:1px solid var(--gold);background:#fff;color:var(--gold);border-radius:8px;font-size:12px;font-weight:700;line-height:1;padding:0 9px;white-space:nowrap;}
+.bwtog.on{background:var(--gold);color:#fff;}
+.varsel{display:flex;gap:6px;}
+.varsel .vbtn{padding:10px 12px;border:1px solid var(--line);background:#fff;border-radius:10px;font-size:14px;line-height:1;white-space:nowrap;}
+.varsel .vbtn.on{border-color:var(--gold);background:#faf6ea;color:var(--gold);font-weight:700;}
 .restrow{display:flex;align-items:center;gap:8px;margin-top:12px;flex-wrap:wrap;}
 .rlab{font-size:13px;color:var(--muted);}
 .rsec{font-weight:600;min-width:50px;text-align:center;}
@@ -311,7 +316,7 @@ svg.chart{width:100%;height:170px;display:block;}
     <button class="btn" id="resetProg" style="color:var(--danger);">メニューを初期設定に戻す</button>
   </section>
 
-  <div class="ver" id="ver">v36</div>
+  <div class="ver" id="ver">v37</div>
 </div>
 
 <div class="timer" id="timer">
@@ -326,11 +331,11 @@ svg.chart{width:100%;height:170px;display:block;}
 <script>
 (function(){
   var DEFAULT_PROGRAM={
-    'Day1 プッシュ（胸・肩・三頭）':[['ベンチプレス',180,'4〜5回×4'],['インクラインDBプレス',120,'10-12×3'],['チェストフライ',75,'12-15×3'],['DBショルダープレス',120,'10-12×3'],['サイドレイズ',60,'15×3'],['プレスダウン',75,'12-15×3']],
-    'Day2 プル（背中・二頭）':[['ラットプルダウン',120,'10-12×4'],['シーテッドロー',120,'10-12×4'],['ワンハンドDBロー',120,'10-12×3'],['リアデルト',60,'15×3'],['EZバーカール',75,'10-12×3'],['ハンマーカール',75,'12×3']],
-    'Day3 脚・腹':[['スミススクワット',180,'8-10×4'],['レッグプレス',120,'10-12×3'],['レッグエクステンション',90,'12-15×3'],['レッグカール',90,'12-15×3'],['カーフレイズ',60,'15-20×4'],['腹筋ローラー',60,'8-12×3']],
-    'Day4 上半身（ベンチ・ボリューム）':[['ベンチプレス',150,'6〜8回×4'],['ワイドラットプル',120,'10-12×4'],['DBショルダープレス',120,'10-12×3'],['ケーブルロー',120,'10-12×3'],['クローズグリップベンチ',120,'10-12×3']],
-    'Day5 下半身＋追い込み':[['スミススクワット',150,'10-12×4'],['ランジ',120,'12×3'],['レッグカール',90,'12-15×3'],['サイドレイズ',60,'15-20×4'],['腹筋ローラー',60,'10-15×3']]
+    'Day1 プッシュ（胸・肩・三頭）':[['ベンチプレス',180,'4〜5回×4'],['インクラインDBプレス',120,'10-12×3'],['ディップス',120,'8-12×3'],['DBショルダープレス',120,'10-12×3'],['サイドレイズ',60,'15×3'],['プレスダウン',75,'12-15×3']],
+    'Day2 プル（背中・二頭）':[['デッドリフト',180,'5回×3'],['チンニング',120,'最大反復×3'],['ラットプルダウン',120,'10-12×3'],['シーテッドロー',120,'10-12×3'],['EZバーカール',75,'10-12×3'],['ハンマーカール',75,'12×3']],
+    'Day3 脚・腹':[['スミススクワット',180,'8-10×4'],['レッグプレス',120,'10-12×3'],['レッグエクステンション',90,'12-15×3'],['レッグカール',90,'12-15×3'],['カーフレイズ',60,'15-20×4'],['ハンギングレッグレイズ',60,'10-15×3']],
+    'Day4 上半身（ベンチ・ボリューム）':[['ベンチプレス',150,'6〜8回×4'],['チンニング',120,'10-15×3'],['ワイドラットプル',120,'10-12×4'],['DBショルダープレス',120,'10-12×3'],['ケーブルロー',120,'10-12×3'],['クローズグリップベンチ',120,'10-12×3']],
+    'Day5 下半身＋追い込み':[['スミススクワット',150,'10-12×4'],['ブルガリアンスクワット',120,'10-12×3/脚'],['ランジ',120,'12×3'],['レッグカール',90,'12-15×3'],['サイドレイズ',60,'15-20×4'],['腹筋ローラー',60,'10-15×3']]
   };
   var MEAL_PRESETS=[['朝食',565,58],['昼食',990,38],['トレ後プロテイン',100,20]];
   var FOODS=[
@@ -365,7 +370,9 @@ svg.chart{width:100%;height:170px;display:block;}
   function load(){try{return JSON.parse(localStorage.getItem(KEY))||{}}catch(e){return{}}}
   var S=load();
   S.logs=S.logs||[];S.body=S.body||[];S.cardio=S.cardio||[];S.meals=S.meals||[];S.notes=S.notes||{};S.trainMin=S.trainMin||{};if(S.voiceText===undefined)S.voiceText='休憩終了。次のセットだ。';if(S.alarmType===undefined)S.alarmType='standard';S.customEx=S.customEx||{};S.customFoods=S.customFoods||[];if(!S.customSets)S.customSets=DEFAULT_SETS.map(function(s){return {name:s[0],items:s[1].map(function(it){return {food:it[0],amount:it[1]};})};});S.meals=S.meals.map(function(m){return {date:m.date,slot:m.slot||'他',name:m.name||m.label||'食事',kcal:+m.kcal||0,p:(m.p!=null?+m.p:(+m.protein||0)),f:+m.f||0,c:+m.c||0,base:m.base,baseAmt:m.baseAmt,unit:m.unit,amount:(m.amount!=null?m.amount:m.qty)};});
-  if(!S.program){S.program=JSON.parse(JSON.stringify(DEFAULT_PROGRAM));}
+  if(!S.program){S.program=JSON.parse(JSON.stringify(DEFAULT_PROGRAM));S.progVer=2;}
+  if((S.progVer||0)<2){S.program=JSON.parse(JSON.stringify(DEFAULT_PROGRAM));S.progVer=2;save();}
+  S.bwMode=S.bwMode||{};if(!S.abVarLast)S.abVarLast='膝コロ';
   function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}}
 
   function fmtW(w){return (Math.round(w*10)/10).toString();}
@@ -395,6 +402,12 @@ svg.chart{width:100%;height:170px;display:block;}
   function isLowerBody(ex){return /スクワット|デッド|ランジ|ブルガリアン|レッグ|カーフ|ヒップ|ルーマニアン/.test(ex||'');}
   function e1rm(w,r,ex){if(!(w>0)||!(r>0))return 0;if(r<=1)return w;var div=isLowerBody(ex)?33.3:40;return w*(1+r/div);}
   function e1rmBest(ex){var m=0;S.logs.filter(function(l){return l.exercise===ex;}).forEach(function(l){var e=e1rm(l.weight,l.reps,ex);if(e>m)m=e;});return m;}
+  function isAbRoller(ex){return /腹筋ローラー|アブローラー/.test(ex||'');}
+  function isBwCap(ex){return /チンニング|懸垂|チンアップ|プルアップ|ディップ|ハンギング|ブルガリアン/.test(ex||'');}
+  function noOneRM(ex){return isAbRoller(ex)||/ハンギング|レッグレイズ|クランチ|プランク|腹筋/.test(ex||'');}
+  function bwNow(){return Math.round(weightOn());}
+  function bwOn(ex){var v=S.bwMode&&S.bwMode[ex];return v===undefined?isBwCap(ex):!!v;}
+  function setLabel(s){if(s.variant)return s.variant+'×'+s.reps;if(s.bw)return (s.bwAdd>0?'自重+'+fmtW(s.bwAdd)+'kg':'自重')+'×'+s.reps;return fmtW(s.weight)+'kg×'+s.reps;}
   function maxWeight(ex){var m=0;S.logs.filter(function(l){return l.exercise===ex;}).forEach(function(l){if(l.weight>m)m=l.weight;});return m;}
   function confetti(){var c=document.createElement('canvas');c.style.cssText='position:fixed;inset:0;pointer-events:none;z-index:110;';c.width=window.innerWidth;c.height=window.innerHeight;document.body.appendChild(c);var x=c.getContext('2d');var cols=['#d4af37','#0f6e56','#e24b4a','#378add','#f0997b'];var ps=[];for(var i=0;i<90;i++){ps.push({x:Math.random()*c.width,y:-20-Math.random()*c.height*0.3,vx:(Math.random()-0.5)*3,vy:2+Math.random()*4,s:5+Math.random()*6,col:cols[i%cols.length],rot:Math.random()*6,vr:(Math.random()-0.5)*0.3});}var t0=performance.now();function fr(now){var el=now-t0;x.clearRect(0,0,c.width,c.height);ps.forEach(function(p){p.x+=p.vx;p.y+=p.vy;p.vy+=0.05;p.rot+=p.vr;x.save();x.translate(p.x,p.y);x.rotate(p.rot);x.globalAlpha=Math.max(0,1-el/2300);x.fillStyle=p.col;x.fillRect(-p.s/2,-p.s/2,p.s,p.s*0.6);x.restore();});if(el<2300)requestAnimationFrame(fr);else c.remove();}requestAnimationFrame(fr);}
   function cheer(){var a=getAC();if(a){try{[660,880,1175].forEach(function(f,i){var o=a.createOscillator(),g=a.createGain();o.connect(g);g.connect(a.destination);o.type='triangle';o.frequency.value=f;g.gain.value=0.35;o.start(a.currentTime+i*0.12);o.stop(a.currentTime+i*0.12+0.14);});}catch(e){}}if(navigator.vibrate)navigator.vibrate([60,40,60,40,140]);}
@@ -414,29 +427,44 @@ svg.chart{width:100%;height:170px;display:block;}
       var stat=ts.length?(done?'✓ 完了':ts.length+'/'+target+'セット'):'未';
       var statCls=done?'d':(ts.length?'p':'n');
       var lastChip=ls?'<span class="lastd">前回 '+fmtDate(ls.date)+'</span>':'';
-      var head='<div class="ehead"><span class="exname">'+ex+'</span><span class="ehmeta">'+lastChip+(be>0?'<span class="pr1rm">1RM最高 '+Math.round(be)+'kg</span>':'')+'<span class="estat '+statCls+'">'+stat+'</span></span></div>';
+      var head='<div class="ehead"><span class="exname">'+ex+'</span><span class="ehmeta">'+lastChip+(!noOneRM(ex)&&be>0?'<span class="pr1rm">1RM最高 '+Math.round(be)+'kg</span>':'')+'<span class="estat '+statCls+'">'+stat+'</span></span></div>';
       if(!isOpen){card.innerHTML=head;card.querySelector('.ehead').addEventListener('click',function(){openEx=ex;renderRec();});list.appendChild(card);return;}
-      var prev=ls?('前回 '+fmtDate(ls.date)+'・'+days(ls.date)+'<br><b>'+ls.sets.map(function(s){return fmtW(s.weight)+'×'+s.reps;}).join(', ')+'</b>'):'前回の記録なし';
-      var rec=recommend(ex,scheme,ls);
-      var recLine=rec?('<div class="reco">おすすめ <b>'+fmtW(rec.weight)+'kg × '+rec.reps+'回</b>（'+target+'セット）<br><span class="faint">'+rec.note+'</span></div>'):'<div class="reco faint">初回はフォーム重視で余裕をもって。次回から「おすすめ」を出します。</div>';
+      var prev=ls?('前回 '+fmtDate(ls.date)+'・'+days(ls.date)+'<br><b>'+ls.sets.map(function(s){return setLabel(s);}).join(', ')+'</b>'):'前回の記録なし';
+      var rec=(isAbRoller(ex)||bwOn(ex))?null:recommend(ex,scheme,ls);
+      var recLine=rec?('<div class="reco">おすすめ <b>'+fmtW(rec.weight)+'kg × '+rec.reps+'回</b>（'+target+'セット）<br><span class="faint">'+rec.note+'</span></div>'):(isAbRoller(ex)?'<div class="reco faint">膝コロ／立ちコロを選んで回数を記録。前回より1回でも多く。</div>':isBwCap(ex)?'<div class="reco faint">自重で限界まで。余裕が出たら「＋kg」か回数を増やす。</div>':'<div class="reco faint">初回はフォーム重視で余裕をもって。次回から「おすすめ」を出します。</div>');
       var lastT=ts.length?ts[ts.length-1]:null;
       var prevSet=lastT||(ls&&ls.sets.length?ls.sets[ls.sets.length-1]:null);
+      var curVar=(prevSet&&prevSet.variant)||S.abVarLast||'膝コロ';
+      var recallW=prevSet?'<button class="recall rw" type="button" aria-label="前のセットの重量を入力">↪</button>':'';
+      var recallR=prevSet?'<button class="recall rr" type="button" aria-label="前のセットの回数を入力">↪</button>':'';
+      var repIg='<div class="ig"><label>回数</label><div class="iginput"><input class="r" type="number" inputmode="numeric" step="1" placeholder="回">'+recallR+'</div></div>';
+      var inrow;
+      if(isAbRoller(ex)){
+        inrow='<div class="inrow"><div class="ig"><label>種別</label><div class="varsel"><button class="vbtn vknee'+(curVar==='膝コロ'?' on':'')+'" type="button">膝コロ</button><button class="vbtn vstand'+(curVar==='立ちコロ'?' on':'')+'" type="button">立ちコロ</button></div></div>'+repIg+'<button class="rec" type="button">記録</button></div>';
+      }else if(isBwCap(ex)){
+        var bon=bwOn(ex);
+        inrow='<div class="inrow"><div class="ig"><label>'+(bon?'自重＋加重':'重量 (kg)')+'</label><div class="iginput"><button class="bwtog'+(bon?' on':'')+'" type="button">自重</button><input class="w" type="number" inputmode="decimal" step="2.5" placeholder="'+(bon?'＋kg(任意)':'kg')+'">'+recallW+'</div></div><span class="x">×</span>'+repIg+'<button class="rec" type="button">記録</button></div>';
+      }else{
+        inrow='<div class="inrow"><div class="ig"><label>重量 (kg)</label><div class="iginput"><input class="w" type="number" inputmode="decimal" step="2.5" placeholder="kg">'+recallW+'</div></div><span class="x">×</span>'+repIg+'<button class="rec" type="button">記録</button></div>';
+      }
       card.innerHTML=head+'<div class="ebody"><div class="prev">'+prev+' <span class="scheme">／ 目安 '+scheme+'</span></div>'+recLine
-        +'<div class="inrow"><div class="ig"><label>重量 (kg)</label><div class="iginput"><input class="w" type="number" inputmode="decimal" step="2.5" placeholder="kg">'+(prevSet?'<button class="recall rw" type="button" aria-label="前のセットの重量を入力">↪</button>':'')+'</div></div><span class="x">×</span><div class="ig"><label>回数</label><div class="iginput"><input class="r" type="number" inputmode="numeric" step="1" placeholder="回">'+(prevSet?'<button class="recall rr" type="button" aria-label="前のセットの回数を入力">↪</button>':'')+'</div></div><button class="rec" type="button">記録</button></div>'
+        +inrow
         +'<div class="restrow"><span class="rlab">休憩</span><button class="rminus" type="button">−15</button><span class="rsec">'+rest+'秒</span><button class="rplus" type="button">＋15</button><button class="rstart" type="button">▶ 開始</button></div>'
         +'<div class="sets"></div><button class="exdel" type="button">この種目をメニューから削除</button></div>';
       card.querySelector('.ehead').addEventListener('click',function(){openEx=null;renderRec();});
       var wI=card.querySelector('.w'),rI=card.querySelector('.r');
-      function logSet(w,r){if(!(w>0)||!(r>0))return false;var priorE=e1rmBest(ex),priorW=maxWeight(ex);S.logs.push({date:today,exercise:ex,setNo:todaySets(ex).length+1,weight:w,reps:r});save();renderRec();var newE=e1rm(w,r,ex);if((priorE>0&&newE>priorE+0.01)||(priorW>0&&w>priorW))celebratePR(ex,newE,priorE,w,priorW);return true;}
-      card.querySelector('.rec').addEventListener('click',function(){var w=parseFloat(wI.value),r=parseInt(rI.value,10);if(!logSet(w,r))wI.focus();});
-      if(prevSet){var rwB=card.querySelector('.rw'),rrB=card.querySelector('.rr');if(rwB)rwB.addEventListener('click',function(){wI.value=fmtW(prevSet.weight);});if(rrB)rrB.addEventListener('click',function(){rI.value=prevSet.reps;});}
+      function logSet(w,r,opts){opts=opts||{};if(!(r>0))return false;var entry={date:today,exercise:ex,setNo:todaySets(ex).length+1,reps:r};if(opts.abRoller){entry.weight=0;entry.variant=opts.variant;}else if(opts.bw){var add=(w>0?w:0);entry.weight=bwNow()+add;entry.bw=true;if(add>0)entry.bwAdd=add;}else{if(!(w>0))return false;entry.weight=w;}var priorE=e1rmBest(ex),priorW=maxWeight(ex);S.logs.push(entry);save();renderRec();if(!noOneRM(ex)){var newE=e1rm(entry.weight,r,ex);if((priorE>0&&newE>priorE+0.01)||(priorW>0&&entry.weight>priorW))celebratePR(ex,newE,priorE,entry.weight,priorW);}return true;}
+      var bt=card.querySelector('.bwtog');if(bt)bt.addEventListener('click',function(){if(!S.bwMode)S.bwMode={};S.bwMode[ex]=!bwOn(ex);save();renderRec();});
+      var vk=card.querySelector('.vknee'),vs=card.querySelector('.vstand');function setVar(v){curVar=v;S.abVarLast=v;save();if(vk)vk.classList.toggle('on',v==='膝コロ');if(vs)vs.classList.toggle('on',v==='立ちコロ');}if(vk)vk.addEventListener('click',function(){setVar('膝コロ');});if(vs)vs.addEventListener('click',function(){setVar('立ちコロ');});
+      card.querySelector('.rec').addEventListener('click',function(){var r=parseInt(rI.value,10);if(isAbRoller(ex)){if(!logSet(0,r,{abRoller:true,variant:curVar}))rI.focus();return;}var w=parseFloat(wI.value);if(isBwCap(ex)&&bwOn(ex)){if(!logSet(w,r,{bw:true}))rI.focus();return;}if(!logSet(w,r)){if(wI)wI.focus();}});
+      if(prevSet){var rwB=card.querySelector('.rw'),rrB=card.querySelector('.rr');if(rwB)rwB.addEventListener('click',function(){wI.value=(isBwCap(ex)&&bwOn(ex))?(prevSet.bwAdd>0?fmtW(prevSet.bwAdd):''):(prevSet.weight!=null?fmtW(prevSet.weight):'');});if(rrB)rrB.addEventListener('click',function(){rI.value=prevSet.reps;});}
       function setRest(v){row[1]=Math.max(15,v);save();renderRec();}
       card.querySelector('.rminus').addEventListener('click',function(){setRest(rest-15);});
       card.querySelector('.rplus').addEventListener('click',function(){setRest(rest+15);});
       card.querySelector('.rstart').addEventListener('click',function(){startTimer(rest,ex);});
       card.querySelector('.exdel').addEventListener('click',function(){if(confirm('「'+ex+'」をこの日のメニューから削除しますか？（記録データは残ります）')){S.program[daySel.value].splice(ri,1);openEx=null;save();renderRec();}});
       var sc=card.querySelector('.sets');
-      ts.forEach(function(s){var c=document.createElement('span');c.className='chip';c.innerHTML='<b>'+s.setNo+')</b> '+fmtW(s.weight)+'kg×'+s.reps+' <span class="c1rm">1RM '+Math.round(e1rm(s.weight,s.reps,ex))+'</span> <span class="del">×</span>';
+      ts.forEach(function(s){var c=document.createElement('span');c.className='chip';c.innerHTML='<b>'+s.setNo+')</b> '+setLabel(s)+(noOneRM(ex)?'':' <span class="c1rm">1RM '+Math.round(e1rm(s.weight,s.reps,ex))+'</span>')+' <span class="del">×</span>';
         c.querySelector('.del').addEventListener('click',function(){S.logs=S.logs.filter(function(l){return!(l.date===today&&l.exercise===ex&&l.setNo===s.setNo);});S.logs.filter(function(l){return l.date===today&&l.exercise===ex;}).sort(function(a,b){return a.setNo-b.setNo;}).forEach(function(l,i){l.setNo=i+1;});save();renderRec();});sc.appendChild(c);});
       list.appendChild(card);
     });
@@ -641,12 +669,12 @@ svg.chart{width:100%;height:170px;display:block;}
   var EXCAT={
     '胸':['ベンチプレス','インクラインDBプレス','ダンベルフライ','チェストフライ','ディップス','プッシュアップ'],
     '肩':['ショルダープレス','DBショルダープレス','サイドレイズ','フロントレイズ','リアレイズ','フェイスプル'],
-    '背中':['ラットプルダウン','懸垂','シーテッドロー','ベントオーバーロー','ワンハンドDBロー','ケーブルロー','デッドリフト','シュラッグ'],
+    '背中':['ラットプルダウン','チンニング','懸垂','シーテッドロー','ベントオーバーロー','ワンハンドDBロー','ケーブルロー','デッドリフト','シュラッグ'],
     '二頭':['バーベルカール','EZバーカール','ダンベルカール','ハンマーカール','コンセントレーションカール'],
     '三頭':['プレスダウン','スカルクラッシャー','フレンチプレス','キックバック','クローズグリップベンチ'],
     '前腕':['リストカール','リバースカール'],
-    '脚':['スクワット','レッグプレス','ハックスクワット','レッグエクステンション','レッグカール','ルーマニアンデッドリフト','ランジ','ヒップスラスト','カーフレイズ','アダクション'],
-    '腹':['腹筋ローラー','クランチ','レッグレイズ','プランク','ケーブルクランチ','サイドベンド','ツイスト']
+    '脚':['スクワット','ブルガリアンスクワット','レッグプレス','ハックスクワット','レッグエクステンション','レッグカール','ルーマニアンデッドリフト','ランジ','ヒップスラスト','カーフレイズ','アダクション'],
+    '腹':['腹筋ローラー','ハンギングレッグレイズ','クランチ','レッグレイズ','プランク','ケーブルクランチ','サイドベンド','ツイスト']
   };
   function inferRest(n){if(/デッドリフト|スクワット|ベンチプレス/.test(n))return 180;if(/プレス|ロー|プルダウン|懸垂|ランジ|ヒップスラスト|ディップ/.test(n))return 120;return 75;}
   function buildExPicker(){
