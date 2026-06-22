@@ -263,10 +263,10 @@ svg.chart{width:100%;height:170px;display:block;}
     </div>
     <div class="faint" style="text-align:center;margin-top:6px;line-height:1.6;">色：薄いほど未・濃いほど今週よく鍛えた。<br>日曜の夜に自動リセット（月曜から新しい週）。</div>
     <div class="card">
-      <div class="muted" style="font-size:13px;margin-bottom:8px;">サイズ記録（今日）</div>
+      <div class="muted" style="font-size:13px;margin-bottom:8px;">サイズ記録（最新の数値を表示）</div>
       <div id="bodyInputs"></div>
       <button class="btn sm primary" id="saveBody" style="margin-top:10px;">保存</button>
-      <div class="faint" style="font-size:12px;margin-top:6px;">入力した項目だけ今日の記録に保存。推移は「グラフ」タブで見られます。</div>
+      <div class="faint" style="font-size:12px;margin-top:6px;">表示中の数値は最後に記録した値です。変わった項目だけ書き換えて保存。推移は「グラフ」タブで。</div>
     </div>
   </section>
 
@@ -316,7 +316,7 @@ svg.chart{width:100%;height:170px;display:block;}
     <button class="btn" id="resetProg" style="color:var(--danger);">メニューを初期設定に戻す</button>
   </section>
 
-  <div class="ver" id="ver">v37</div>
+  <div class="ver" id="ver">v38</div>
 </div>
 
 <div class="timer" id="timer">
@@ -639,8 +639,9 @@ svg.chart{width:100%;height:170px;display:block;}
     if(!arr.length){box.innerHTML='<div class="faint" style="font-size:13px;">記録がまだありません。</div>';return;}
     box.innerHTML='';arr.forEach(function(it){var r=document.createElement('div');r.className='row';r.style.cssText='justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--line);cursor:pointer;';r.innerHTML='<span style="font-size:14px;">'+it.name+'</span><span class="row" style="gap:10px;font-size:13px;"><span class="faint">最高'+fnum(it.w)+'kg</span><b>1RM '+Math.round(it.e)+'kg</b></span>';r.addEventListener('click',function(){var sel=document.getElementById('graphSel');sel.value=it.name;renderGraph();window.scrollTo(0,0);});box.appendChild(r);});}
   function todayBody(){return S.body.filter(function(b){return b.date===today;})[0];}
-  function renderBodyInputs(){var box=document.getElementById('bodyInputs');if(!box)return;var tb=todayBody()||{};box.innerHTML='';var grid=document.createElement('div');grid.style.cssText='display:grid;grid-template-columns:1fr 1fr;gap:8px;';BODY_METRICS.forEach(function(m){var w=document.createElement('label');w.style.cssText='display:flex;align-items:center;gap:5px;font-size:13px;';var sp=document.createElement('span');sp.style.cssText='min-width:58px;color:var(--muted);';sp.textContent=m[1];var inp=document.createElement('input');inp.type='number';inp.inputMode='decimal';inp.step='0.1';inp.id='bm_'+m[0];inp.style.cssText='width:100%;min-width:0;padding:8px;border:1px solid var(--line);border-radius:8px;text-align:center;';if(tb[m[0]]!=null)inp.value=tb[m[0]];var u=document.createElement('span');u.className='faint';u.style.fontSize='12px';u.textContent=m[2];w.appendChild(sp);w.appendChild(inp);w.appendChild(u);grid.appendChild(w);});box.appendChild(grid);}
-  document.getElementById('saveBody').addEventListener('click',function(){var rec=todayBody();if(!rec){rec={date:today};S.body.push(rec);}var any=false;BODY_METRICS.forEach(function(m){var el=document.getElementById('bm_'+m[0]);var v=parseFloat(el.value);if(!isNaN(v)){rec[m[0]]=v;any=true;}});if(!any){toast('数値を入力してください');return;}save();renderBodyInputs();toast('サイズを保存しました ✓');});
+  function latestBodyVal(f){var arr=S.body.filter(function(b){return b[f]!=null&&b[f]!=='';}).sort(function(a,b){return a.date<b.date?-1:1;});return arr.length?arr[arr.length-1]:null;}
+  function renderBodyInputs(){var box=document.getElementById('bodyInputs');if(!box)return;box.innerHTML='';var lastDate=null;S.body.forEach(function(b){var has=BODY_METRICS.some(function(m){return b[m[0]]!=null&&b[m[0]]!=='';});if(has&&(!lastDate||b.date>lastDate))lastDate=b.date;});if(lastDate){var note=document.createElement('div');note.className='faint';note.style.cssText='font-size:12px;margin-bottom:8px;';note.textContent='前回測定 '+fmtDate(lastDate);box.appendChild(note);}var grid=document.createElement('div');grid.style.cssText='display:grid;grid-template-columns:1fr 1fr;gap:8px;';BODY_METRICS.forEach(function(m){var rec=latestBodyVal(m[0]);var w=document.createElement('label');w.style.cssText='display:flex;align-items:center;gap:5px;font-size:13px;';var sp=document.createElement('span');sp.style.cssText='min-width:58px;color:var(--muted);';sp.textContent=m[1];var inp=document.createElement('input');inp.type='number';inp.inputMode='decimal';inp.step='0.1';inp.id='bm_'+m[0];inp.style.cssText='width:100%;min-width:0;padding:8px;border:1px solid var(--line);border-radius:8px;text-align:center;';if(rec)inp.value=rec[m[0]];inp.setAttribute('data-prev',rec?rec[m[0]]:'');var u=document.createElement('span');u.className='faint';u.style.fontSize='12px';u.textContent=m[2];w.appendChild(sp);w.appendChild(inp);w.appendChild(u);grid.appendChild(w);});box.appendChild(grid);}
+  document.getElementById('saveBody').addEventListener('click',function(){var changed=[];BODY_METRICS.forEach(function(m){var el=document.getElementById('bm_'+m[0]);var v=parseFloat(el.value);if(isNaN(v))return;var prev=el.getAttribute('data-prev');if(prev!==''&&parseFloat(prev)===v)return;changed.push([m[0],v]);});if(!changed.length){toast('変更はありません');return;}var rec=todayBody();if(!rec){rec={date:today};S.body.push(rec);}changed.forEach(function(c){rec[c[0]]=c[1];});save();renderBodyInputs();toast('サイズを保存しました ✓');});
 
   var setDay=document.getElementById('setDay');
   function renderSet(){
