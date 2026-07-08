@@ -385,6 +385,7 @@ svg.chart{width:100%;height:170px;display:block;}
   function fmtDate(d){var x=new Date(d+'T00:00:00');var w=['日','月','火','水','木','金','土'][x.getDay()];return (x.getMonth()+1)+'/'+x.getDate()+'('+w+')';}
   function lastSession(ex){var p=S.logs.filter(function(l){return l.exercise===ex&&l.date<today;});if(!p.length)return null;var d=p.map(function(l){return l.date;}).sort().slice(-1)[0];return{date:d,sets:p.filter(function(l){return l.date===d;}).sort(function(a,b){return a.setNo-b.setNo;})};}
   function todaySets(ex){return S.logs.filter(function(l){return l.exercise===ex&&l.date===today;}).sort(function(a,b){return a.setNo-b.setNo;});}
+  function doneThisWeek(ex,target){if(!(target>0))return false;var ws=weekStart(),byDate={};S.logs.forEach(function(l){if(l.exercise===ex&&l.date>=ws&&l.date<=today)byDate[l.date]=(byDate[l.date]||0)+1;});return Object.keys(byDate).some(function(d){return byDate[d]>=target;});}
   function allTodaySets(){return S.logs.filter(function(l){return l.date===today;});}
 
   var daySel=document.getElementById('daySel');
@@ -424,11 +425,11 @@ svg.chart{width:100%;height:170px;display:block;}
       var ex=row[0],rest=row[1],scheme=row[2]||'';
       var ls=lastSession(ex),ts=todaySets(ex);
       var target=parseScheme(scheme).sets;
-      var done=target>0&&ts.length>=target;
+      var done=doneThisWeek(ex,target);
       var isOpen=(openEx===ex);
       var be=e1rmBest(ex);
       var card=document.createElement('div');card.className='card exc'+(isOpen?' open':'')+(done?' done':'');
-      var stat=ts.length?(done?'✓ 完了':ts.length+'/'+target+'セット'):'未';
+      var stat=done?'✓ 完了':(ts.length?ts.length+'/'+target+'セット':'未');
       var statCls=done?'d':(ts.length?'p':'n');
       var lastChip=ls?'<span class="lastd">前回 '+fmtDate(ls.date)+'</span>':'';
       var head='<div class="ehead"><span class="exname">'+ex+'</span><span class="ehmeta">'+lastChip+(!noOneRM(ex)&&be>0?'<span class="pr1rm">1RM最高 '+Math.round(be)+'kg</span>':'')+'<span class="estat '+statCls+'">'+stat+'</span></span></div>';
@@ -670,7 +671,9 @@ svg.chart{width:100%;height:170px;display:block;}
   document.getElementById('addDay').addEventListener('click',function(){var name=(prompt('追加する日の名前は？','Day'+(Object.keys(S.program).length+1))||'').trim();if(!name)return;if(S.program[name]){alert('同じ名前の日があります');return;}S.program[name]=[];daySel.value=name;refreshDays(name);});
   document.getElementById('renameDay').addEventListener('click',function(){var oldK=setDay.value;var name=(prompt('「'+oldK+'」の新しい名前は？',oldK)||'').trim();if(!name||name===oldK)return;if(S.program[name]){alert('同じ名前の日があります');return;}var np={};Object.keys(S.program).forEach(function(k){np[k===oldK?name:k]=S.program[k];});S.program=np;if(daySel.value===oldK)daySel.value=name;refreshDays(name);});
   document.getElementById('delDay').addEventListener('click',function(){var k=setDay.value;if(Object.keys(S.program).length<=1){alert('最後の1日は削除できません');return;}if(confirm('「'+k+'」を削除しますか？（この日のメニュー構成のみ削除・記録データは残ります）')){delete S.program[k];refreshDays();}});
-  document.getElementById('recAddEx').addEventListener('click',function(){var n=document.getElementById('recNewEx').value.trim(),r=parseInt(document.getElementById('recNewRest').value,10);if(!n)return;var sel=Array.prototype.map.call(document.querySelectorAll('#muscleSel .mc.on'),function(c){return c.getAttribute('data-k');});if(sel.length)S.customEx[n]=sel;S.program[daySel.value].push([n,(r>=0?r:90),'']);openEx=n;document.getElementById('recNewEx').value='';document.getElementById('recNewRest').value='';save();renderRec();buildExPicker();});
+  var curPickPart=null;
+  var PART_MUSCLES={'胸':['chest_up','chest_low'],'肩':['delt_front','delt_side','delt_rear'],'背中':['lats','traps','lowerback'],'二頭':['biceps'],'三頭':['triceps'],'前腕':['forearms'],'脚':['quads','hamstrings','glutes','adductors','calves'],'腹':['abs','obliques']};
+  document.getElementById('recAddEx').addEventListener('click',function(){var n=document.getElementById('recNewEx').value.trim(),r=parseInt(document.getElementById('recNewRest').value,10);if(!n)return;var sel=Array.prototype.map.call(document.querySelectorAll('#muscleSel .mc.on'),function(c){return c.getAttribute('data-k');});if(sel.length){S.customEx[n]=sel;}else if(curPickPart&&PART_MUSCLES[curPickPart]&&!S.customEx[n]){var known=[];Object.keys(EXCAT).forEach(function(p){known=known.concat(EXCAT[p]);});if(known.indexOf(n)===-1)S.customEx[n]=PART_MUSCLES[curPickPart].slice();}S.program[daySel.value].push([n,(r>=0?r:90),'']);openEx=n;document.getElementById('recNewEx').value='';document.getElementById('recNewRest').value='';curPickPart=null;save();renderRec();buildExPicker();});
   var EXCAT={
     '胸':['ベンチプレス','インクラインDBプレス','ダンベルフライ','チェストフライ','ディップス','プッシュアップ'],
     '肩':['ショルダープレス','DBショルダープレス','サイドレイズ','フロントレイズ','リアレイズ','フェイスプル'],
@@ -691,7 +694,7 @@ svg.chart{width:100%;height:170px;display:block;}
     if(pc&&exp){pc.innerHTML='';exp.innerHTML='';
       Object.keys(parts).forEach(function(part){
         var b=document.createElement('button');b.type='button';b.className='pc';b.textContent=part;
-        b.addEventListener('click',function(){Array.prototype.forEach.call(pc.children,function(c){c.classList.remove('on');});b.classList.add('on');exp.innerHTML='';
+        b.addEventListener('click',function(){Array.prototype.forEach.call(pc.children,function(c){c.classList.remove('on');});b.classList.add('on');curPickPart=part;exp.innerHTML='';
           parts[part].forEach(function(name){var e=document.createElement('button');e.type='button';e.className='ec';e.textContent=name;e.addEventListener('click',function(){var ne=document.getElementById('recNewEx'),nr=document.getElementById('recNewRest');ne.value=name;if(!nr.value)nr.value=inferRest(name);ne.focus();});exp.appendChild(e);});
         });
         pc.appendChild(b);
@@ -722,7 +725,7 @@ svg.chart{width:100%;height:170px;display:block;}
     if(has('サイドレイズ','ラテラルレイズ'))m.push('delt_side');
     if(has('フロントレイズ'))m.push('delt_front');
     if(has('リアデルト','リアレイズ','リアフライ','フェイスプル'))m.push('delt_rear');
-    if(has('プレスダウン','トライセプス','三頭','スカル','キックバック','フレンチプレス'))m.push('triceps');
+    if(has('プレスダウン','トライセプス','三頭','スカル','キックバック','フレンチプレス','オーバーヘッドエクステンション','オーバーヘッドトライセプス'))m.push('triceps');
     if(has('デッドリフト'))m.push('lowerback','lats','traps','glutes','hamstrings');
     if(has('ラットプル','プルダウン','プルアップ','懸垂','チンニング'))m.push('lats','biceps');
     if((has('ロー','ローイング')&&!has('ローラー'))||has('ベントオーバー'))m.push('lats','traps','delt_rear','biceps');
