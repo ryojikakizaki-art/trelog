@@ -320,7 +320,7 @@ svg.chart{width:100%;height:170px;display:block;}
     <button class="btn" id="resetProg" style="color:var(--danger);">メニューを初期設定に戻す</button>
   </section>
 
-  <div class="ver" id="ver">v38</div>
+  <div class="ver" id="ver">v41</div>
 </div>
 
 <div class="timer" id="timer">
@@ -415,7 +415,7 @@ svg.chart{width:100%;height:170px;display:block;}
   function setLabel(s){if(s.variant)return s.variant+'×'+s.reps;if(s.bw)return (s.bwAdd>0?'自重+'+fmtW(s.bwAdd)+'kg':'自重')+'×'+s.reps;return fmtW(s.weight)+'kg×'+s.reps;}
   function maxWeight(ex){var m=0;S.logs.filter(function(l){return l.exercise===ex;}).forEach(function(l){if(l.weight>m)m=l.weight;});return m;}
   function confetti(){var c=document.createElement('canvas');c.style.cssText='position:fixed;inset:0;pointer-events:none;z-index:110;';c.width=window.innerWidth;c.height=window.innerHeight;document.body.appendChild(c);var x=c.getContext('2d');var cols=['#d4af37','#0f6e56','#e24b4a','#378add','#f0997b'];var ps=[];for(var i=0;i<90;i++){ps.push({x:Math.random()*c.width,y:-20-Math.random()*c.height*0.3,vx:(Math.random()-0.5)*3,vy:2+Math.random()*4,s:5+Math.random()*6,col:cols[i%cols.length],rot:Math.random()*6,vr:(Math.random()-0.5)*0.3});}var t0=performance.now();function fr(now){var el=now-t0;x.clearRect(0,0,c.width,c.height);ps.forEach(function(p){p.x+=p.vx;p.y+=p.vy;p.vy+=0.05;p.rot+=p.vr;x.save();x.translate(p.x,p.y);x.rotate(p.rot);x.globalAlpha=Math.max(0,1-el/2300);x.fillStyle=p.col;x.fillRect(-p.s/2,-p.s/2,p.s,p.s*0.6);x.restore();});if(el<2300)requestAnimationFrame(fr);else c.remove();}requestAnimationFrame(fr);}
-  function cheer(){playFile(document.getElementById('snd-cheer'));if(navigator.vibrate)navigator.vibrate([60,40,60,40,140]);}
+  function cheer(){mixAudio();playFile(document.getElementById('snd-cheer'));if(navigator.vibrate)navigator.vibrate([60,40,60,40,140]);}
   function toast(html){var t=document.getElementById('toast');t.innerHTML=html;t.style.display='block';t.style.opacity='1';if(t._t)clearTimeout(t._t);t._t=setTimeout(function(){t.style.opacity='0';setTimeout(function(){t.style.display='none';},400);},4500);}
   function celebratePR(ex,newE,priorE,w,priorW){confetti();cheer();var prE=priorE>0&&newE>priorE+0.01,prW=priorW>0&&w>priorW;var msg='🎉 自己ベスト更新！<br><b>'+ex+'</b>';if(prE)msg+='<br>推定1RM <b>'+Math.round(newE)+'kg</b>（前 '+Math.round(priorE)+'kg）';if(prW)msg+='<br>最高重量 <b>'+fmtW(w)+'kg</b>';if(/ベンチ/.test(ex)){var best=Math.max(newE,priorE);var rem=140-Math.round(best);msg+=rem>0?('<br>🎯 ベンチ140kgまであと '+rem+'kg'):'<br>🔥 140kg到達圏！';}toast(msg);}
   var openEx=null;
