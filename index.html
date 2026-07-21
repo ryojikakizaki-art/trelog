@@ -322,7 +322,7 @@ svg.chart{width:100%;height:170px;display:block;}
     <button class="btn" id="resetProg" style="color:var(--danger);">メニューを初期設定に戻す</button>
   </section>
 
-  <div class="ver" id="ver">v43</div>
+  <div class="ver" id="ver">v44</div>
 </div>
 
 <div class="timer" id="timer">
@@ -387,7 +387,6 @@ svg.chart{width:100%;height:170px;display:block;}
   function fmtDate(d){var x=new Date(d+'T00:00:00');var w=['日','月','火','水','木','金','土'][x.getDay()];return (x.getMonth()+1)+'/'+x.getDate()+'('+w+')';}
   function lastSession(ex){var p=S.logs.filter(function(l){return l.exercise===ex&&l.date<today;});if(!p.length)return null;var d=p.map(function(l){return l.date;}).sort().slice(-1)[0];return{date:d,sets:p.filter(function(l){return l.date===d;}).sort(function(a,b){return a.setNo-b.setNo;})};}
   function todaySets(ex){return S.logs.filter(function(l){return l.exercise===ex&&l.date===today;}).sort(function(a,b){return a.setNo-b.setNo;});}
-  function doneThisWeek(ex,target){if(!(target>0))return false;var ws=weekStart(),byDate={};S.logs.forEach(function(l){if(l.exercise===ex&&l.date>=ws&&l.date<=today)byDate[l.date]=(byDate[l.date]||0)+1;});return Object.keys(byDate).some(function(d){return byDate[d]>=target;});}
   function allTodaySets(){return S.logs.filter(function(l){return l.date===today;});}
 
   var daySel=document.getElementById('daySel');
@@ -427,7 +426,7 @@ svg.chart{width:100%;height:170px;display:block;}
       var ex=row[0],rest=row[1],scheme=row[2]||'';
       var ls=lastSession(ex),ts=todaySets(ex);
       var target=parseScheme(scheme).sets;
-      var done=doneThisWeek(ex,target);
+      var done=target>0&&ts.length>=target;
       var isOpen=(openEx===ex);
       var be=e1rmBest(ex);
       var card=document.createElement('div');card.className='card exc'+(isOpen?' open':'')+(done?' done':'');
