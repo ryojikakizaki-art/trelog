@@ -322,7 +322,7 @@ svg.chart{width:100%;height:170px;display:block;}
     <button class="btn" id="resetProg" style="color:var(--danger);">メニューを初期設定に戻す</button>
   </section>
 
-  <div class="ver" id="ver">v44</div>
+  <div class="ver" id="ver">v45</div>
 </div>
 
 <div class="timer" id="timer">
@@ -528,7 +528,7 @@ svg.chart{width:100%;height:170px;display:block;}
   document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible'){if(ac&&ac.state==='suspended'){try{ac.resume();}catch(e){}}if(tId)reqWake();}});
 
   function buildExport(from){
-    var ds=[];for(var i=0;i<(from==='7'?7:1);i++){ds.push(new Date(Date.now()-i*86400000).toISOString().slice(0,10));}
+    var ds=[];for(var i=0;i<(from==='7'?8:1);i++){ds.push(new Date(Date.now()-i*86400000).toISOString().slice(0,10));}
     var lines=[];ds.sort();
     ds.forEach(function(d){
       var t=S.logs.filter(function(l){return l.date===d;}).sort(function(a,b){return a.exercise.localeCompare(b.exercise)||a.setNo-b.setNo;});
