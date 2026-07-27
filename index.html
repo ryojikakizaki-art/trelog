@@ -322,7 +322,7 @@ svg.chart{width:100%;height:170px;display:block;}
     <button class="btn" id="resetProg" style="color:var(--danger);">メニューを初期設定に戻す</button>
   </section>
 
-  <div class="ver" id="ver">v45</div>
+  <div class="ver" id="ver">v46</div>
 </div>
 
 <div class="timer" id="timer">
@@ -388,6 +388,7 @@ svg.chart{width:100%;height:170px;display:block;}
   function lastSession(ex){var p=S.logs.filter(function(l){return l.exercise===ex&&l.date<today;});if(!p.length)return null;var d=p.map(function(l){return l.date;}).sort().slice(-1)[0];return{date:d,sets:p.filter(function(l){return l.date===d;}).sort(function(a,b){return a.setNo-b.setNo;})};}
   function todaySets(ex){return S.logs.filter(function(l){return l.exercise===ex&&l.date===today;}).sort(function(a,b){return a.setNo-b.setNo;});}
   function allTodaySets(){return S.logs.filter(function(l){return l.date===today;});}
+  function lastKeyedDoneSets(ex,dayKey,target){if(!(target>0))return[];var ks=S.logs.filter(function(l){return l.exercise===ex&&l.dayKey===dayKey;});if(!ks.length)return[];var d=ks.map(function(l){return l.date;}).sort().slice(-1)[0];return ks.filter(function(l){return l.date===d;}).sort(function(a,b){return a.setNo-b.setNo;});}
 
   var daySel=document.getElementById('daySel');
   function fillDaySel(sel){sel.innerHTML='';Object.keys(S.program).forEach(function(d){var o=document.createElement('option');o.value=d;o.textContent=d.split('（')[0];sel.appendChild(o);});}
@@ -426,7 +427,7 @@ svg.chart{width:100%;height:170px;display:block;}
       var ex=row[0],rest=row[1],scheme=row[2]||'';
       var ls=lastSession(ex),ts=todaySets(ex);
       var target=parseScheme(scheme).sets;
-      var done=target>0&&ts.length>=target;
+      var done=target>0&&lastKeyedDoneSets(ex,daySel.value,target).length>=target;
       var isOpen=(openEx===ex);
       var be=e1rmBest(ex);
       var card=document.createElement('div');card.className='card exc'+(isOpen?' open':'')+(done?' done':'');
@@ -459,7 +460,7 @@ svg.chart{width:100%;height:170px;display:block;}
         +'<div class="sets"></div><button class="exdel" type="button">この種目をメニューから削除</button></div>';
       card.querySelector('.ehead').addEventListener('click',function(){openEx=null;renderRec();});
       var wI=card.querySelector('.w'),rI=card.querySelector('.r');
-      function logSet(w,r,opts){opts=opts||{};if(!(r>0))return false;var entry={date:today,exercise:ex,setNo:todaySets(ex).length+1,reps:r};if(opts.abRoller){entry.weight=0;entry.variant=opts.variant;}else if(opts.bw){var add=(w>0?w:0);entry.weight=bwNow()+add;entry.bw=true;if(add>0)entry.bwAdd=add;}else{if(!(w>0))return false;entry.weight=w;}var priorE=e1rmBest(ex),priorW=maxWeight(ex);S.logs.push(entry);save();renderRec();if(!noOneRM(ex)){var newE=e1rm(entry.weight,r,ex);if((priorE>0&&newE>priorE+0.01)||(priorW>0&&entry.weight>priorW))celebratePR(ex,newE,priorE,entry.weight,priorW);}return true;}
+      function logSet(w,r,opts){opts=opts||{};if(!(r>0))return false;var entry={date:today,exercise:ex,setNo:todaySets(ex).length+1,reps:r,dayKey:daySel.value};if(opts.abRoller){entry.weight=0;entry.variant=opts.variant;}else if(opts.bw){var add=(w>0?w:0);entry.weight=bwNow()+add;entry.bw=true;if(add>0)entry.bwAdd=add;}else{if(!(w>0))return false;entry.weight=w;}var priorE=e1rmBest(ex),priorW=maxWeight(ex);S.logs.push(entry);save();renderRec();if(!noOneRM(ex)){var newE=e1rm(entry.weight,r,ex);if((priorE>0&&newE>priorE+0.01)||(priorW>0&&entry.weight>priorW))celebratePR(ex,newE,priorE,entry.weight,priorW);}return true;}
       var bt=card.querySelector('.bwtog');if(bt)bt.addEventListener('click',function(){if(!S.bwMode)S.bwMode={};S.bwMode[ex]=!bwOn(ex);save();renderRec();});
       var vk=card.querySelector('.vknee'),vs=card.querySelector('.vstand');function setVar(v){curVar=v;S.abVarLast=v;save();if(vk)vk.classList.toggle('on',v==='膝コロ');if(vs)vs.classList.toggle('on',v==='立ちコロ');}if(vk)vk.addEventListener('click',function(){setVar('膝コロ');});if(vs)vs.addEventListener('click',function(){setVar('立ちコロ');});
       card.querySelector('.rec').addEventListener('click',function(){var r=parseInt(rI.value,10);if(isAbRoller(ex)){if(!logSet(0,r,{abRoller:true,variant:curVar}))rI.focus();return;}var w=parseFloat(wI.value);if(isBwCap(ex)&&bwOn(ex)){if(!logSet(w,r,{bw:true}))rI.focus();return;}if(!logSet(w,r)){if(wI)wI.focus();}});
