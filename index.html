@@ -322,7 +322,7 @@ svg.chart{width:100%;height:170px;display:block;}
     <button class="btn" id="resetProg" style="color:var(--danger);">メニューを初期設定に戻す</button>
   </section>
 
-  <div class="ver" id="ver">v47</div>
+  <div class="ver" id="ver">v48</div>
 </div>
 
 <div class="timer" id="timer">
@@ -336,11 +336,12 @@ svg.chart{width:100%;height:170px;display:block;}
 
 <script>
 (function(){
+  // 2026-08-04〜: 左肩の痛み(3ヶ月継続)によりベンチを一時デロード中（program.md参照）。復帰条件を満たしたらDay1/Day4を通常のベンチプレス強度に戻すこと。
   var DEFAULT_PROGRAM={
-    'Day1 プッシュ（胸・肩・三頭）':[['ベンチプレス',180,'4〜5回×4'],['インクラインDBプレス',120,'10-12×3'],['ディップス',120,'8-12×3'],['DBショルダープレス',120,'10-12×3'],['サイドレイズ',60,'15×3'],['プレスダウン',75,'12-15×3']],
+    'Day1 プッシュ（胸・肩・三頭）':[['ベンチプレス',180,'8-12×3-4'],['インクラインDBプレス',120,'10-12×3'],['ディップス',120,'8-12×3'],['DBショルダープレス',120,'10-12×3'],['サイドレイズ',60,'15×3'],['プレスダウン',75,'12-15×3'],['フェイスプル',75,'15-20×3'],['DB外旋',60,'15×2-3(左右)']],
     'Day2 プル（背中・二頭）':[['デッドリフト',180,'5回×3'],['チンニング',120,'最大反復×3'],['ラットプルダウン',120,'10-12×3'],['シーテッドロー',120,'10-12×3'],['EZバーカール',75,'10-12×3'],['ハンマーカール',75,'12×3']],
     'Day3 脚・腹':[['スミススクワット',180,'8-10×4'],['レッグプレス',120,'10-12×3'],['レッグエクステンション',90,'12-15×3'],['レッグカール',90,'12-15×3'],['カーフレイズ',60,'15-20×4'],['ハンギングレッグレイズ',60,'10-15×3']],
-    'Day4 上半身（ベンチ・ボリューム）':[['ベンチプレス',150,'6〜8回×4'],['チンニング',120,'10-15×3'],['ワイドラットプル',120,'10-12×4'],['DBショルダープレス',120,'10-12×3'],['ケーブルロー',120,'10-12×3'],['クローズグリップベンチ',120,'10-12×3']],
+    'Day4 上半身（ベンチ・ボリューム）':[['マシンチェストプレス',150,'8-12×3-4'],['チンニング',120,'10-15×3'],['ワイドラットプル',120,'10-12×4'],['DBショルダープレス',120,'10-12×3'],['ケーブルロー',120,'10-12×3'],['クローズグリップベンチ',120,'10-12×3']],
     'Day5 下半身＋追い込み':[['スミススクワット',150,'10-12×4'],['ブルガリアンスクワット',120,'10-12×3/脚'],['ランジ',120,'12×3'],['レッグカール',90,'12-15×3'],['サイドレイズ',60,'15-20×4'],['腹筋ローラー',60,'10-15×3']]
   };
   var MEAL_PRESETS=[['朝食',565,58],['昼食',990,38],['トレ後プロテイン',100,20]];
@@ -376,8 +377,8 @@ svg.chart{width:100%;height:170px;display:block;}
   function load(){try{return JSON.parse(localStorage.getItem(KEY))||{}}catch(e){return{}}}
   var S=load();
   S.logs=S.logs||[];S.body=S.body||[];S.cardio=S.cardio||[];S.meals=S.meals||[];S.notes=S.notes||{};S.trainMin=S.trainMin||{};if(S.voiceText===undefined)S.voiceText='休憩終了。次のセットだ。';if(S.alarmType===undefined)S.alarmType='standard';S.customEx=S.customEx||{};S.customFoods=S.customFoods||[];if(!S.customSets)S.customSets=DEFAULT_SETS.map(function(s){return {name:s[0],items:s[1].map(function(it){return {food:it[0],amount:it[1]};})};});S.meals=S.meals.map(function(m){return {date:m.date,slot:m.slot||'他',name:m.name||m.label||'食事',kcal:+m.kcal||0,p:(m.p!=null?+m.p:(+m.protein||0)),f:+m.f||0,c:+m.c||0,base:m.base,baseAmt:m.baseAmt,unit:m.unit,amount:(m.amount!=null?m.amount:m.qty)};});
-  if(!S.program){S.program=JSON.parse(JSON.stringify(DEFAULT_PROGRAM));S.progVer=2;}
-  if((S.progVer||0)<2){S.program=JSON.parse(JSON.stringify(DEFAULT_PROGRAM));S.progVer=2;save();}
+  if(!S.program){S.program=JSON.parse(JSON.stringify(DEFAULT_PROGRAM));S.progVer=3;}
+  if((S.progVer||0)<3){S.program=JSON.parse(JSON.stringify(DEFAULT_PROGRAM));S.progVer=3;save();}
   S.bwMode=S.bwMode||{};if(!S.abVarLast)S.abVarLast='膝コロ';
   function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}}
 
@@ -723,11 +724,12 @@ svg.chart{width:100%;height:170px;display:block;}
     if(has('インクライン'))m.push('chest_up','delt_front','triceps');
     if(has('デクライン'))m.push('chest_low','triceps');
     if(has('フライ','ペック'))m.push('chest_low','chest_up');
+    if(has('チェストプレス'))m.push('chest_low','chest_up','triceps','delt_front');
     if(has('ディップ','腕立','プッシュアップ'))m.push('chest_low','triceps','delt_front');
     if(has('ショルダープレス','OHP','ミリタリー','オーバーヘッドプレス'))m.push('delt_front','delt_side','triceps');
     if(has('サイドレイズ','ラテラルレイズ'))m.push('delt_side');
     if(has('フロントレイズ'))m.push('delt_front');
-    if(has('リアデルト','リアレイズ','リアフライ','フェイスプル'))m.push('delt_rear');
+    if(has('リアデルト','リアレイズ','リアフライ','フェイスプル','外旋','ローテーター'))m.push('delt_rear');
     if(has('プレスダウン','トライセプス','三頭','スカル','キックバック','フレンチプレス','オーバーヘッドエクステンション','オーバーヘッドトライセプス'))m.push('triceps');
     if(has('デッドリフト'))m.push('lowerback','lats','traps','glutes','hamstrings');
     if(has('ラットプル','プルダウン','プルアップ','懸垂','チンニング'))m.push('lats','biceps');
