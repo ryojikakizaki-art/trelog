@@ -322,7 +322,7 @@ svg.chart{width:100%;height:170px;display:block;}
     <button class="btn" id="resetProg" style="color:var(--danger);">メニューを初期設定に戻す</button>
   </section>
 
-  <div class="ver" id="ver">v48</div>
+  <div class="ver" id="ver">v49</div>
 </div>
 
 <div class="timer" id="timer">
@@ -336,14 +336,16 @@ svg.chart{width:100%;height:170px;display:block;}
 
 <script>
 (function(){
-  // 2026-08-04〜: 左肩の痛み(3ヶ月継続)によりベンチを一時デロード中（program.md参照）。復帰条件を満たしたらDay1/Day4を通常のベンチプレス強度に戻すこと。
+  // 2026-10-19〜: 停滞の見直し（program.md参照）。週5日に戻す／左肩が治るまで肩が痛む種目(DBショルダープレス・ディップス)を外しベンチは70kgまで／各Dayの種目を固定して6〜8週続ける。
   var DEFAULT_PROGRAM={
-    'Day1 プッシュ（胸・肩・三頭）':[['ベンチプレス',180,'8-12×3-4'],['インクラインDBプレス',120,'10-12×3'],['ディップス',120,'8-12×3'],['DBショルダープレス',120,'10-12×3'],['サイドレイズ',60,'15×3'],['プレスダウン',75,'12-15×3'],['フェイスプル',75,'15-20×3'],['DB外旋',60,'15×2-3(左右)']],
-    'Day2 プル（背中・二頭）':[['デッドリフト',180,'5回×3'],['チンニング',120,'最大反復×3'],['ラットプルダウン',120,'10-12×3'],['シーテッドロー',120,'10-12×3'],['EZバーカール',75,'10-12×3'],['ハンマーカール',75,'12×3']],
-    'Day3 脚・腹':[['スミススクワット',180,'8-10×4'],['レッグプレス',120,'10-12×3'],['レッグエクステンション',90,'12-15×3'],['レッグカール',90,'12-15×3'],['カーフレイズ',60,'15-20×4'],['ハンギングレッグレイズ',60,'10-15×3']],
-    'Day4 上半身（ベンチ・ボリューム）':[['マシンチェストプレス',150,'8-12×3-4'],['チンニング',120,'10-15×3'],['ワイドラットプル',120,'10-12×4'],['DBショルダープレス',120,'10-12×3'],['ケーブルロー',120,'10-12×3'],['クローズグリップベンチ',120,'10-12×3']],
-    'Day5 下半身＋追い込み':[['スミススクワット',150,'10-12×4'],['ブルガリアンスクワット',120,'10-12×3/脚'],['ランジ',120,'12×3'],['レッグカール',90,'12-15×3'],['サイドレイズ',60,'15-20×4'],['腹筋ローラー',60,'10-15×3']]
+    'Day1 プッシュ（胸・肩・三頭）':[['ベンチプレス',180,'8-12×3'],['インクラインDBプレス',120,'10-12×3'],['チェストフライ',90,'12-15×3'],['サイドレイズ',60,'15-20×3'],['プレスダウン',75,'12-15×3'],['フェイスプル',75,'15-20×3'],['DB外旋',60,'15×3']],
+    'Day2 プル（背中・二頭）':[['デッドリフト',180,'5-8×3'],['チンニング',120,'最大反復×3'],['シーテッドロー',120,'10-12×3'],['EZバーカール',75,'10-12×3'],['ハンマーカール',75,'12-15×3'],['リアレイズ',60,'15-20×3']],
+    'Day3 脚・腹':[['スミススクワット',180,'8-10×4'],['レッグプレス',120,'10-15×3'],['レッグエクステンション',90,'12-15×3'],['レッグカール',90,'12-15×3'],['カーフレイズ',60,'12-15×4'],['ハンギングレッグレイズ',60,'10-15×3']],
+    'Day4 上半身（ベンチ・ボリューム）':[['マシンチェストプレス',150,'8-12×4'],['ワイドラットプル',120,'10-12×4'],['ケーブルロー',120,'10-12×3'],['クローズグリップベンチ',120,'10-12×3'],['プリーチャーカール(ユニカ）',75,'10-12×3'],['リストカール',60,'15-20×3']],
+    'Day5 下半身＋追い込み':[['スミススクワット',150,'10-12×4'],['ブルガリアンスクワット',120,'10-12×3/脚'],['レッグカール',90,'12-15×3'],['カーフレイズ',60,'12-15×3'],['サイドレイズ',60,'15-20×4'],['腹筋ローラー',60,'10-15×3']]
   };
+  // 肩が治るまでの重量上限（おすすめ重量がこれを超えないようにする）
+  var WEIGHT_CAP={'ベンチプレス':70};
   var MEAL_PRESETS=[['朝食',565,58],['昼食',990,38],['トレ後プロテイン',100,20]];
   var FOODS=[
     ['鶏むね肉',108,22,1.5,0,'たんぱく源',100,'g'],['鶏もも(皮なし)',113,19,5,0,'たんぱく源',100,'g'],
@@ -377,8 +379,8 @@ svg.chart{width:100%;height:170px;display:block;}
   function load(){try{return JSON.parse(localStorage.getItem(KEY))||{}}catch(e){return{}}}
   var S=load();
   S.logs=S.logs||[];S.body=S.body||[];S.cardio=S.cardio||[];S.meals=S.meals||[];S.notes=S.notes||{};S.trainMin=S.trainMin||{};if(S.voiceText===undefined)S.voiceText='休憩終了。次のセットだ。';if(S.alarmType===undefined)S.alarmType='standard';S.customEx=S.customEx||{};S.customFoods=S.customFoods||[];if(!S.customSets)S.customSets=DEFAULT_SETS.map(function(s){return {name:s[0],items:s[1].map(function(it){return {food:it[0],amount:it[1]};})};});S.meals=S.meals.map(function(m){return {date:m.date,slot:m.slot||'他',name:m.name||m.label||'食事',kcal:+m.kcal||0,p:(m.p!=null?+m.p:(+m.protein||0)),f:+m.f||0,c:+m.c||0,base:m.base,baseAmt:m.baseAmt,unit:m.unit,amount:(m.amount!=null?m.amount:m.qty)};});
-  if(!S.program){S.program=JSON.parse(JSON.stringify(DEFAULT_PROGRAM));S.progVer=3;}
-  if((S.progVer||0)<3){S.program=JSON.parse(JSON.stringify(DEFAULT_PROGRAM));S.progVer=3;save();}
+  if(!S.program){S.program=JSON.parse(JSON.stringify(DEFAULT_PROGRAM));S.progVer=4;}
+  if((S.progVer||0)<4){if(S.program)S.programPrev=S.program;S.program=JSON.parse(JSON.stringify(DEFAULT_PROGRAM));S.progVer=4;save();}
   S.bwMode=S.bwMode||{};if(!S.abVarLast)S.abVarLast='膝コロ';
   function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}}
 
@@ -401,7 +403,10 @@ svg.chart{width:100%;height:170px;display:block;}
   function parseScheme(sc){if(!sc)return{lo:8,hi:12,sets:3};var p=sc.split('×');var rn=(p[0].match(/\d+/g)||[]).map(Number);var sn=(p[1]||'').match(/\d+/g)||[3];var lo=rn[0]||8,hi=rn[1]||lo;return{lo:lo,hi:hi,sets:Number(sn[0])||3};}
   function round25(x){return Math.round(x/2.5)*2.5;}
   function repPct(r){var t={1:1,2:.95,3:.92,4:.9,5:.87,6:.84,7:.82,8:.8,9:.77,10:.75,11:.72,12:.7,15:.65};return t[r]||(r<=15?0.95-0.02*r:0.6);}
-  function recommend(ex,scheme,ls){var ps=parseScheme(scheme);
+  function recommend(ex,scheme,ls){var r=recommendRaw(ex,scheme,ls),c=WEIGHT_CAP[ex];
+    if(r&&c&&r.weight>c){var ps=parseScheme(scheme);var atCap=ls&&ls.sets.length&&Math.max.apply(null,ls.sets.map(function(s){return s.weight;}))===c;return{weight:c,reps:atCap?ps.hi:ps.lo,note:'肩が治るまで'+c+'kgまで（痛みが出たらその日は中止）'};}
+    return r;}
+  function recommendRaw(ex,scheme,ls){var ps=parseScheme(scheme);
     if(ls&&ls.sets.length){var tw=Math.max.apply(null,ls.sets.map(function(s){return s.weight;}));var rr=Math.max.apply(null,ls.sets.filter(function(s){return s.weight===tw;}).map(function(s){return s.reps;}));
       if(rr>=ps.hi){return{weight:round25(tw+2.5),reps:ps.lo,note:'前回'+fmtW(tw)+'kg×'+rr+'（上限達成）→ +2.5kg'};}
       return{weight:tw,reps:Math.min(rr+1,ps.hi),note:'前回'+fmtW(tw)+'kg×'+rr+' → 同じ重さで+1回めざす'};}
