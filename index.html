@@ -325,7 +325,7 @@ svg.chart{width:100%;height:170px;display:block;}
     <button class="btn" id="resetProg" style="color:var(--danger);">メニューを初期設定に戻す</button>
   </section>
 
-  <div class="ver" id="ver">v50</div>
+  <div class="ver" id="ver">v51</div>
 </div>
 
 <div class="timer" id="timer">
@@ -510,7 +510,7 @@ svg.chart{width:100%;height:170px;display:block;}
   function notifyEnd(){try{if('Notification' in window&&Notification.permission==='granted'&&navigator.serviceWorker&&navigator.serviceWorker.ready){navigator.serviceWorker.ready.then(function(reg){reg.showNotification('休憩おわり！',{body:'次のセットへ',tag:'rest'});}).catch(function(){});}}catch(e){}}
   var alarmEl=document.getElementById('alarm');
   [alarmEl,document.getElementById('snd-warn'),document.getElementById('snd-go'),document.getElementById('snd-rapid'),document.getElementById('snd-chime'),document.getElementById('snd-8bit'),document.getElementById('snd-cheer'),document.getElementById('snd-cuckoo')].forEach(function(el){if(el)el.addEventListener('ended',function(){restoreMix();});});
-  function unlockAudio(){getAC();try{Array.prototype.forEach.call(document.querySelectorAll('audio'),function(el){try{if(!el.paused)return;el.muted=true;var p=el.play();if(p&&p.then)p.then(function(){el.pause();el.currentTime=0;}).catch(function(){});}catch(e){}});}catch(e){}try{if('speechSynthesis' in window){var w=new SpeechSynthesisUtterance(' ');w.volume=0;speechSynthesis.speak(w);}}catch(e){}}
+  function unlockAudio(){getAC();try{Array.prototype.forEach.call(document.querySelectorAll('audio'),function(el){try{if(!el.paused)return;el.muted=true;var p=el.play();if(p&&p.then)p.then(function(){el.pause();el.currentTime=0;}).catch(function(){});}catch(e){}});}catch(e){}if(S.alarmType==='voice'){try{if('speechSynthesis' in window){var w=new SpeechSynthesisUtterance(' ');w.volume=0;speechSynthesis.speak(w);}}catch(e){}}}
   document.addEventListener('touchend',unlockAudio,{once:true});
   document.addEventListener('click',unlockAudio,{once:true});
   function playAlarmEl(){var ok=false;if(alarmEl){try{alarmEl.muted=false;alarmEl.currentTime=0;var p=alarmEl.play();ok=true;if(p&&p.catch)p.catch(function(){beep();});}catch(e){ok=false;}}if(!ok)beep();}
@@ -536,7 +536,7 @@ svg.chart{width:100%;height:170px;display:block;}
   document.getElementById('tsub').addEventListener('click',function(){endAt-=30000;if(endAt<Date.now()+1000)endAt=Date.now()+1000;total=Math.max(1,total-30);tick();});
   document.getElementById('tadd').addEventListener('click',function(){endAt+=30000;total+=30;if(!tId){tEl.classList.remove('done');tchip.classList.remove('done');reqWake();tId=setInterval(tick,250);}tick();});
   document.getElementById('tskip').addEventListener('click',function(){if(tId)clearInterval(tId);tId=null;tEl.style.display='none';tchip.style.display='none';cancelAlarm();keepAliveStop();cancelPush();relWake();});
-  document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible'){if(ac&&ac.state==='suspended'){try{ac.resume();}catch(e){}}if(tId)reqWake();}});
+  document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible'){mixAudio();if(ac&&ac.state==='suspended'){try{ac.resume();}catch(e){}}if(tId)reqWake();}});
 
   function buildExport(from){
     var ds=[];
