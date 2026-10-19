@@ -196,6 +196,9 @@ svg.chart{width:100%;height:170px;display:block;}
       <button class="btn" id="expDay">今日の分を書き出す</button>
       <button class="btn" id="exp7">直近7日を書き出す</button>
     </div>
+    <div class="row" style="gap:8px;margin-top:8px;">
+      <button class="btn" id="expAll">全期間を書き出す（Macで推移を見る用）</button>
+    </div>
     <textarea id="out" readonly class="hide" style="width:100%;margin-top:8px;height:130px;border:1px solid var(--line);border-radius:10px;padding:10px;font-family:ui-monospace,Menlo,monospace;font-size:12px;"></textarea>
   </section>
 
@@ -322,7 +325,7 @@ svg.chart{width:100%;height:170px;display:block;}
     <button class="btn" id="resetProg" style="color:var(--danger);">メニューを初期設定に戻す</button>
   </section>
 
-  <div class="ver" id="ver">v49</div>
+  <div class="ver" id="ver">v50</div>
 </div>
 
 <div class="timer" id="timer">
@@ -536,7 +539,9 @@ svg.chart{width:100%;height:170px;display:block;}
   document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible'){if(ac&&ac.state==='suspended'){try{ac.resume();}catch(e){}}if(tId)reqWake();}});
 
   function buildExport(from){
-    var ds=[];for(var i=0;i<(from==='7'?8:1);i++){ds.push(new Date(Date.now()-i*86400000).toISOString().slice(0,10));}
+    var ds=[];
+    if(from==='all'){var seen={};[S.logs,S.meals,S.cardio,S.body].forEach(function(a){a.forEach(function(x){if(x&&x.date)seen[x.date]=1;});});Object.keys(S.notes).forEach(function(d){seen[d]=1;});ds=Object.keys(seen);}
+    else{for(var i=0;i<(from==='7'?8:1);i++){ds.push(new Date(Date.now()-i*86400000).toISOString().slice(0,10));}}
     var lines=[];ds.sort();
     ds.forEach(function(d){
       var t=S.logs.filter(function(l){return l.date===d;}).sort(function(a,b){return a.exercise.localeCompare(b.exercise)||a.setNo-b.setNo;});
@@ -556,6 +561,7 @@ svg.chart{width:100%;height:170px;display:block;}
   }
   document.getElementById('expDay').addEventListener('click',function(){buildExport('1');});
   document.getElementById('exp7').addEventListener('click',function(){buildExport('7');});
+  document.getElementById('expAll').addEventListener('click',function(){buildExport('all');});
 
   function isTrainingDay(){return allTodaySets().length>0;}
   var modalSlot='朝';
