@@ -1,4 +1,4 @@
-var C = 'trelog-v54';
+var C = 'trelog-v55';
 var ASSETS = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './snd-warn.mp3', './snd-go.mp3', './snd-clap.mp3', './snd-cuckoo.mp3'];
 self.addEventListener('install', function (e) {
   e.waitUntil(caches.open(C).then(function (c) { return c.addAll(ASSETS); }));
@@ -19,9 +19,14 @@ self.addEventListener('fetch', function (e) {
   );
 });
 self.addEventListener('push', function (e) {
-  e.waitUntil(self.registration.showNotification('休憩おわり！', {
-    body: '次のセットへ', tag: 'rest', renotify: true, vibrate: [300, 120, 300], requireInteraction: false
-  }));
+  e.waitUntil(Promise.all([
+    self.registration.showNotification('休憩おわり！', {
+      body: '次のセットへ', tag: 'rest', renotify: true, vibrate: [300, 120, 300], requireInteraction: false
+    }),
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function (cs) {
+      cs.forEach(function (c) { c.postMessage({ trelog: 'push' }); });
+    }).catch(function () {})
+  ]));
 });
 self.addEventListener('notificationclick', function (e) {
   e.notification.close();
