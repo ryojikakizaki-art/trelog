@@ -321,12 +321,12 @@ svg.chart{width:100%;height:170px;display:block;}
         <input id="voiceText" class="txt" placeholder="例：休憩終了。次のセットだ。" style="flex:1;min-width:120px;width:auto;">
       </div>
       <div class="row" style="margin-top:8px;"><button class="btn sm" id="alarmTest">🔊 テスト再生</button></div>
-      <div class="muted" style="font-size:12px;margin-top:6px;">電子音は前面（アプリ表示中）で鳴ります。マナーモード中も鳴ります（鳴る瞬間だけ音楽が止まります）。ロック中／バックグラウンドは通知でお知らせ。「読み上げ」は端末の音声（特定キャラの声は不可）。</div>
+      <div class="muted" style="font-size:12px;margin-top:6px;">電子音は前面（アプリ表示中）で鳴ります（マナーモード中は鳴りません）。ロック中／バックグラウンドは通知でお知らせ。「読み上げ」は端末の音声（特定キャラの声は不可）。</div>
     </div>
     <button class="btn" id="resetProg" style="color:var(--danger);">メニューを初期設定に戻す</button>
   </section>
 
-  <div class="ver" id="ver">v52</div>
+  <div class="ver" id="ver">v53</div>
 </div>
 
 <div class="timer" id="timer">
@@ -501,7 +501,6 @@ svg.chart{width:100%;height:170px;display:block;}
   var unduckT=null;
   function duckOthers(ms){setAudioType('transient-solo');if(unduckT)clearTimeout(unduckT);unduckT=setTimeout(restoreMix,ms||6000);}
   function restoreMix(){if(unduckT){clearTimeout(unduckT);unduckT=null;}setAudioType('transient');}
-  function loudSession(ms){setAudioType('playback');if(unduckT)clearTimeout(unduckT);unduckT=setTimeout(restoreMix,ms||4000);}
   mixAudio();
   function getACraw(){if(!ac){try{ac=new (window.AudioContext||window.webkitAudioContext)();}catch(e){}}if(ac&&ac.state!=='running'&&ac.state!=='closed'){try{ac.resume();}catch(e){}}return ac;}
   function getAC(){mixAudio();return getACraw();}
@@ -525,7 +524,7 @@ svg.chart{width:100%;height:170px;display:block;}
   function snd8bit(){var a=getACraw();if(!a)return false;try{[523,659,784,1047].forEach(function(fr,i){var o=a.createOscillator(),g=a.createGain();o.type='square';o.frequency.value=fr;var st=a.currentTime+i*0.1;g.gain.setValueAtTime(0.0001,st);g.gain.exponentialRampToValueAtTime(0.85,st+0.01);g.gain.exponentialRampToValueAtTime(0.0001,st+0.09);o.connect(g);g.connect(a.destination);o.start(st);o.stop(st+0.1);});return true;}catch(e){return false;}}
   function playFile(el){if(!el){playAlarmEl();return;}try{el.muted=false;el.currentTime=0;var p=el.play();if(p&&p.catch)p.catch(function(){playAlarmEl();});}catch(e){playAlarmEl();}}
   function loudAlarm(){try{playAlarmEl();}catch(e){}var a=getAC();if(!a)return;try{[[990,0],[1320,0.16],[990,0.32],[1320,0.48],[990,0.64],[1320,0.8]].forEach(function(p){var o=a.createOscillator(),g=a.createGain();o.type='square';o.frequency.value=p[0];var t0=a.currentTime+p[1];g.gain.setValueAtTime(0.0001,t0);g.gain.exponentialRampToValueAtTime(0.9,t0+0.01);g.gain.exponentialRampToValueAtTime(0.0001,t0+0.13);o.connect(g);g.connect(a.destination);o.start(t0);o.stop(t0+0.15);});}catch(e){}}
-  function fireAlarm(){var t=S.alarmType||'standard';if(t==='none')return;loudSession(t==='voice'?8000:4000);if(t==='voice'){speakAlarm();return;}if(t==='warn'){playFile(document.getElementById('snd-warn'));return;}if(t==='go'){playFile(document.getElementById('snd-go'));return;}if(t==='cuckoo'){playFile(document.getElementById('snd-cuckoo'));return;}if(t==='rapid'){playFile(document.getElementById('snd-rapid'));return;}if(t==='chime'){playFile(document.getElementById('snd-chime'));return;}if(t==='8bit'){playFile(document.getElementById('snd-8bit'));return;}playAlarmEl();}
+  function fireAlarm(){var t=S.alarmType||'standard';if(t==='none')return;mixAudio();if(t==='voice'){speakAlarm();return;}if(t==='warn'){playFile(document.getElementById('snd-warn'));return;}if(t==='go'){playFile(document.getElementById('snd-go'));return;}if(t==='cuckoo'){playFile(document.getElementById('snd-cuckoo'));return;}if(t==='rapid'){playFile(document.getElementById('snd-rapid'));return;}if(t==='chime'){playFile(document.getElementById('snd-chime'));return;}if(t==='8bit'){playFile(document.getElementById('snd-8bit'));return;}playAlarmEl();}
   var WORKER_URL='https://trelog-push.ryoji-kakizaki.workers.dev';
   var VAPID_PUBLIC='BO7Kz8ZOG-WonPORzmrAPxDYnz8kGtKORx9HWpO3gRvcE5vqZZmfvH9FqqKOMsUHm6nci93tnrFWKM3JuJsLB94';
   var pushSub=null,pushId=localStorage.getItem('pushId')||(crypto.randomUUID?crypto.randomUUID():String(Date.now())+Math.round(Math.random()*1e9));
@@ -537,7 +536,7 @@ svg.chart{width:100%;height:170px;display:block;}
   function schedulePush(){var at=endAt;pushSend(function(){return ensurePush().then(function(s){if(!s||at<=Date.now())return;return fetch(WORKER_URL+'/schedule',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:pushId,subscription:s,delay:Math.max(1,(at-Date.now())/1000)})});});});}
   function cancelPush(){pushSend(function(){if(!pushSub)return;return fetch(WORKER_URL+'/cancel',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:pushId})});});}
   function tick(){var rem=Math.max(0,Math.round((endAt-Date.now())/1000));tnum.textContent=mmss(rem);tchip.textContent='休憩 '+mmss(rem);tbar.style.width=(total?Math.round(rem/total*100):0)+'%';
-    if(rem<=0){clearInterval(tId);tId=null;tEl.classList.add('done');tchip.classList.add('done');tlabel.textContent='休憩おわり！次のセットへ';tchip.textContent='休憩おわり';var lateMs=Date.now()-endAt;if(document.visibilityState==='visible'&&(lateMs<1500||!wasHidden)){cancelAlarm();fireAlarm();if(navigator.vibrate)navigator.vibrate([450,150,450,150,450,150,600]);}keepOff();cancelPush();relWake();}}
+    if(rem<=0){clearInterval(tId);tId=null;tEl.classList.add('done');tchip.classList.add('done');tlabel.textContent='休憩おわり！次のセットへ';tchip.textContent='休憩おわり';var lateMs=Date.now()-endAt;if(document.visibilityState==='visible'&&(lateMs<1500||!wasHidden)){cancelAlarm();fireAlarm();if(navigator.vibrate)navigator.vibrate([450,150,450,150,450,150,600]);}setTimeout(function(){if(!tId)keepOff();},5000);cancelPush();relWake();}}
   function startTimer(sec,ex){if(tId)clearInterval(tId);if(kaStopT){clearTimeout(kaStopT);kaStopT=null;}unlockAudio();keepOn();wasHidden=false;total=sec;endAt=Date.now()+sec*1000;tEl.style.display='block';tEl.classList.remove('done');tchip.classList.remove('done');tchip.style.display='block';tlabel.textContent='休憩中';tex.textContent=ex;reqWake();schedulePush();if('Notification' in window&&Notification.permission==='default'){try{Notification.requestPermission().then(function(p){if(p==='granted')ensurePush();});}catch(e){}}tick();tId=setInterval(tick,250);}
   function beep(){var a=getACraw();if(a){try{var o=a.createOscillator(),g=a.createGain();o.connect(g);g.connect(a.destination);o.type='square';o.frequency.value=990;g.gain.value=0.85;o.start();setTimeout(function(){try{o.frequency.value=1320;}catch(e){}},170);setTimeout(function(){try{o.stop();}catch(e){}},560);}catch(e){}}if(navigator.vibrate)navigator.vibrate([450,150,450]);}
   document.getElementById('tsub').addEventListener('click',function(){endAt-=30000;if(endAt<Date.now()+1000)endAt=Date.now()+1000;total=Math.max(1,total-30);tick();if(tId)schedulePush();});
