@@ -326,7 +326,7 @@ svg.chart{width:100%;height:170px;display:block;}
     <button class="btn" id="resetProg" style="color:var(--danger);">メニューを初期設定に戻す</button>
   </section>
 
-  <div class="ver" id="ver">v56</div>
+  <div class="ver" id="ver">v57</div>
 </div>
 
 <div class="timer" id="timer">
@@ -519,7 +519,7 @@ svg.chart{width:100%;height:170px;display:block;}
   function loadBuf(id){var a=getACraw(),el=document.getElementById(id);if(!a||!el||bufs[id]||bufLoading[id]||!window.fetch)return;bufLoading[id]=true;fetch(el.currentSrc||el.src).then(function(r){return r.arrayBuffer();}).then(function(ab){return new Promise(function(res,rej){var q=a.decodeAudioData(ab,res,rej);if(q&&q.then)q.then(res,rej);});}).then(function(b){bufs[id]=b;alog(id+' 音データ準備OK');}).catch(function(e){alog(id+' 音データ準備NG '+(e&&e.name||''));}).then(function(){bufLoading[id]=false;});}
   function loadAlarmBufs(){loadBuf(SND_ID[S.alarmType||'standard']);loadBuf('alarm');}
   function playBuf(id){var a=ac,b=bufs[id];if(!a||a.state!=='running'||!b)return false;try{var src=a.createBufferSource();src.buffer=b;src.connect(a.destination);src.onended=function(){alog(id+' 音データ再生 終了');restoreMix();};src.start();alog(id+' 音データ再生 開始 '+b.duration.toFixed(2)+'s');return true;}catch(e){alog(id+' 音データ再生 例外 '+(e&&e.name||''));return false;}}
-  function unlockAudio(){getAC();loadAlarmBufs();try{Array.prototype.forEach.call(document.querySelectorAll('audio'),function(el){try{if(!el.paused)return;el.muted=true;var p=el.play();if(p&&p.then)p.then(function(){el.pause();el.currentTime=0;}).catch(function(){});}catch(e){}});}catch(e){}try{if('speechSynthesis' in window){var w=new SpeechSynthesisUtterance(' ');w.volume=0;speechSynthesis.speak(w);}}catch(e){}}
+  function unlockAudio(){getAC();loadAlarmBufs();try{Array.prototype.forEach.call(document.querySelectorAll('audio'),function(el){try{if(!el.paused)return;el.muted=true;var p=el.play();if(p&&p.then)p.then(function(){el.pause();el.currentTime=0;}).catch(function(){});}catch(e){}});}catch(e){}if(S.alarmType==='voice'){try{if('speechSynthesis' in window){var w=new SpeechSynthesisUtterance(' ');w.volume=0;speechSynthesis.speak(w);}}catch(e){}}}
   document.addEventListener('touchend',unlockAudio,{once:true});
   document.addEventListener('click',unlockAudio,{once:true});
   function playAlarmEl(){var ok=false;if(alarmEl){try{alarmEl.muted=false;alarmEl.currentTime=0;var p=alarmEl.play();ok=true;if(p&&p.then)p.then(function(){alog('alarm 再生OK');},function(e){alog('alarm 再生NG '+(e&&e.name||''));beep();});}catch(e){ok=false;alog('alarm 例外 '+(e&&e.name||''));}}if(!ok)beep();}
