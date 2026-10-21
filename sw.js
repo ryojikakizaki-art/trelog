@@ -1,7 +1,7 @@
-var C = 'trelog-v57';
+var C = 'trelog-v58';
 var ASSETS = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './snd-warn.mp3', './snd-go.mp3', './snd-clap.mp3', './snd-cuckoo.mp3'];
 self.addEventListener('install', function (e) {
-  e.waitUntil(caches.open(C).then(function (c) { return c.addAll(ASSETS); }));
+  e.waitUntil(caches.open(C).then(function (c) { return c.addAll(ASSETS.map(function (u) { return new Request(u, { cache: 'reload' }); })); }));
   self.skipWaiting();
 });
 self.addEventListener('activate', function (e) {

@@ -326,7 +326,7 @@ svg.chart{width:100%;height:170px;display:block;}
     <button class="btn" id="resetProg" style="color:var(--danger);">メニューを初期設定に戻す</button>
   </section>
 
-  <div class="ver" id="ver">v57</div>
+  <div class="ver" id="ver">v58</div>
 </div>
 
 <div class="timer" id="timer">
@@ -832,6 +832,7 @@ svg.chart{width:100%;height:170px;display:block;}
   renderRec();go('rec');buildExPicker();
   if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(function(){});navigator.serviceWorker.addEventListener('message',function(e){if(e.data&&e.data.trelog==='push')alog('通知(プッシュ)受信 表示='+document.visibilityState);});}
   alog('起動 '+((document.getElementById('ver')||{}).textContent||''));
+  if('serviceWorker' in navigator){var hadCtl=!!navigator.serviceWorker.controller;navigator.serviceWorker.addEventListener('controllerchange',function(){if(!hadCtl)return;if(tId){alog('新しい版あり（休憩中なので次回起動時に更新）');return;}alog('新しい版に更新');location.reload();});document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible'){navigator.serviceWorker.getRegistration().then(function(r){if(r)r.update();}).catch(function(){});}});}
   if('Notification' in window&&Notification.permission==='granted')ensurePush();
 })();
 </script>
