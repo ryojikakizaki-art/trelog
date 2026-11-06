@@ -199,6 +199,15 @@ svg.chart{width:100%;height:170px;display:block;}
     <div class="row" style="gap:8px;margin-top:8px;">
       <button class="btn" id="expAll">全期間を書き出す（Macで推移を見る用）</button>
     </div>
+    <div class="row" style="gap:6px;margin-top:8px;flex-wrap:wrap;">
+      <input type="date" id="expFrom" class="txt" style="width:auto;flex:1;min-width:130px;">
+      <span>〜</span>
+      <input type="date" id="expTo" class="txt" style="width:auto;flex:1;min-width:130px;">
+      <button class="btn" id="expRange">この期間を書き出す</button>
+    </div>
+    <div class="row" style="gap:8px;margin-top:8px;">
+      <button class="btn" id="expShare">書き出した内容をファイルでMacへ送る（AirDrop）</button>
+    </div>
     <textarea id="out" readonly class="hide" style="width:100%;margin-top:8px;height:130px;border:1px solid var(--line);border-radius:10px;padding:10px;font-family:ui-monospace,Menlo,monospace;font-size:12px;"></textarea>
   </section>
 
@@ -326,7 +335,7 @@ svg.chart{width:100%;height:170px;display:block;}
     <button class="btn" id="resetProg" style="color:var(--danger);">メニューを初期設定に戻す</button>
   </section>
 
-  <div class="ver" id="ver">v60</div>
+  <div class="ver" id="ver">v61</div>
 </div>
 
 <div class="timer" id="timer">
@@ -555,9 +564,9 @@ svg.chart{width:100%;height:170px;display:block;}
   document.addEventListener('visibilitychange',function(){alog('表示='+document.visibilityState+(tId?' 休憩残り'+Math.round((endAt-Date.now())/1000)+'秒':''));});
   window.addEventListener('pageshow',function(e){if(e.persisted)alog('ページ復帰');});
 
-  function buildExport(from){
+  function buildExport(from,a,b){
     var ds=[];
-    if(from==='all'){var seen={};[S.logs,S.meals,S.cardio,S.body].forEach(function(a){a.forEach(function(x){if(x&&x.date)seen[x.date]=1;});});Object.keys(S.notes).forEach(function(d){seen[d]=1;});ds=Object.keys(seen);}
+    if(from==='all'||from==='range'){var seen={};[S.logs,S.meals,S.cardio,S.body].forEach(function(a){a.forEach(function(x){if(x&&x.date)seen[x.date]=1;});});Object.keys(S.notes).forEach(function(d){seen[d]=1;});ds=Object.keys(seen);if(from==='range')ds=ds.filter(function(d){return d>=a&&d<=b;});}
     else{for(var i=0;i<(from==='7'?8:1);i++){ds.push(new Date(Date.now()-i*86400000).toISOString().slice(0,10));}}
     var lines=[];ds.sort();
     ds.forEach(function(d){
@@ -573,12 +582,38 @@ svg.chart{width:100%;height:170px;display:block;}
       if(b)lines.push('BODY,'+d+','+fmtW(b.weight)+',');
       if(S.notes[d])lines.push('NOTE,'+d+',"'+S.notes[d].replace(/"/g,"'").replace(/\n/g,' ')+'"');
     });
-    var out=document.getElementById('out');out.classList.remove('hide');out.value=lines.length?lines.join('\n'):'記録がまだありません。';out.select();
+    var out=document.getElementById('out');out.classList.remove('hide');out.value=lines.length?lines.join('\n'):(from==='range'?'この期間の記録はありません。':'記録がまだありません。');out.select();
+    lastExp={from:from,a:a,b:b,has:lines.length>0};
     if(navigator.clipboard)navigator.clipboard.writeText(out.value).catch(function(){});
   }
   document.getElementById('expDay').addEventListener('click',function(){buildExport('1');});
   document.getElementById('exp7').addEventListener('click',function(){buildExport('7');});
   document.getElementById('expAll').addEventListener('click',function(){buildExport('all');});
+  // v61: 期間を指定して書き出す＋書き出した内容をファイルにして送る（AirDropでMacへ）
+  var lastExp=null;
+  function addDays(d,n){var x=new Date(d+'T00:00:00Z');x.setUTCDate(x.getUTCDate()+n);return x.toISOString().slice(0,10);}
+  (function(){var f=document.getElementById('expFrom'),t=document.getElementById('expTo');var td=todayStr();
+    t.value=td;f.value=S.lastExpTo&&S.lastExpTo<td?addDays(S.lastExpTo,1):addDays(td,-7);})();
+  document.getElementById('expRange').addEventListener('click',function(){
+    var a=document.getElementById('expFrom').value,b=document.getElementById('expTo').value;
+    if(!a||!b){alert('始まりと終わりの日付を選んでください');return;}
+    if(a>b){var x=a;a=b;b=x;document.getElementById('expFrom').value=a;document.getElementById('expTo').value=b;}
+    buildExport('range',a,b);
+    if(lastExp&&lastExp.has&&(!S.lastExpTo||b>S.lastExpTo)){S.lastExpTo=b;save();}
+  });
+  document.getElementById('expShare').addEventListener('click',function(){
+    var out=document.getElementById('out');
+    if(!lastExp||!lastExp.has||!out.value){alert('先に「書き出す」ボタンのどれかを押してください');return;}
+    var td=todayStr();
+    var name=lastExp.from==='range'?('trelog_'+lastExp.a+'_'+lastExp.b+'.txt'):lastExp.from==='all'?('trelog_all_'+td+'.txt'):('trelog_'+td+'.txt');
+    var file=null;try{file=new File([out.value],name,{type:'text/plain'});}catch(e){}
+    if(file&&navigator.canShare&&navigator.canShare({files:[file]})){
+      navigator.share({files:[file],title:name}).catch(function(e){if(e&&e.name!=='AbortError')alert('送れませんでした：'+e.message);});
+      return;
+    }
+    try{var u=URL.createObjectURL(new Blob([out.value],{type:'text/plain'}));var el=document.createElement('a');el.href=u;el.download=name;document.body.appendChild(el);el.click();setTimeout(function(){URL.revokeObjectURL(u);el.parentNode&&el.parentNode.removeChild(el);},1000);}
+    catch(e){alert('この端末ではファイルで送れません。書き出した文字をコピーして貼り付けてください');}
+  });
 
   function isTrainingDay(){return allTodaySets().length>0;}
   var modalSlot='朝';
