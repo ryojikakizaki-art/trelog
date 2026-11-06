@@ -326,7 +326,7 @@ svg.chart{width:100%;height:170px;display:block;}
     <button class="btn" id="resetProg" style="color:var(--danger);">メニューを初期設定に戻す</button>
   </section>
 
-  <div class="ver" id="ver">v59</div>
+  <div class="ver" id="ver">v60</div>
 </div>
 
 <div class="timer" id="timer">
@@ -342,7 +342,7 @@ svg.chart{width:100%;height:170px;display:block;}
 (function(){
   // 2026-10-19〜: 停滞の見直し（program.md参照）。週5日に戻す／左肩が治るまで肩が痛む種目(DBショルダープレス・ディップス)を外しベンチは70kgまで／各Dayの種目を固定して6〜8週続ける。
   var DEFAULT_PROGRAM={
-    'Day1 プッシュ（胸・肩・三頭）':[['ベンチプレス',180,'8-12×3'],['インクラインDBプレス',120,'10-12×3'],['チェストフライ',90,'12-15×3'],['サイドレイズ',60,'15-20×3'],['プレスダウン',75,'12-15×3'],['フェイスプル',75,'15-20×3'],['DB外旋',60,'15×3']],
+    'Day1 プッシュ（胸・肩・三頭）':[['ベンチプレス',180,'8-12×3'],['インクラインDBプレス',120,'10-12×3'],['サイドレイズ',60,'15-20×3'],['プレスダウン',75,'12-15×3'],['フェイスプル',75,'15-20×3'],['DB外旋',60,'15×3']],
     'Day2 プル（背中・二頭）':[['デッドリフト',180,'5-8×3'],['チンニング',120,'最大反復×3'],['シーテッドロー',120,'10-12×3'],['EZバーカール',75,'10-12×3'],['ハンマーカール',75,'12-15×3'],['リアレイズ',60,'15-20×3']],
     'Day3 脚・腹':[['スミススクワット',180,'8-10×4'],['レッグプレス',120,'10-15×3'],['レッグエクステンション',90,'12-15×3'],['レッグカール',90,'12-15×3'],['カーフレイズ',60,'12-15×4'],['ハンギングレッグレイズ',60,'10-15×3']],
     'Day4 上半身（ベンチ・ボリューム）':[['マシンチェストプレス',150,'8-12×4'],['ワイドラットプル',120,'10-12×4'],['ケーブルロー',120,'10-12×3'],['クローズグリップベンチ',120,'10-12×3'],['プリーチャーカール(ユニカ）',75,'10-12×3'],['リストカール',60,'15-20×3']],
@@ -383,8 +383,10 @@ svg.chart{width:100%;height:170px;display:block;}
   function load(){try{return JSON.parse(localStorage.getItem(KEY))||{}}catch(e){return{}}}
   var S=load();
   S.logs=S.logs||[];S.body=S.body||[];S.cardio=S.cardio||[];S.meals=S.meals||[];S.notes=S.notes||{};S.trainMin=S.trainMin||{};if(S.voiceText===undefined)S.voiceText='休憩終了。次のセットだ。';if(S.alarmType===undefined)S.alarmType='standard';S.customEx=S.customEx||{};S.customFoods=S.customFoods||[];if(!S.customSets)S.customSets=DEFAULT_SETS.map(function(s){return {name:s[0],items:s[1].map(function(it){return {food:it[0],amount:it[1]};})};});S.meals=S.meals.map(function(m){return {date:m.date,slot:m.slot||'他',name:m.name||m.label||'食事',kcal:+m.kcal||0,p:(m.p!=null?+m.p:(+m.protein||0)),f:+m.f||0,c:+m.c||0,base:m.base,baseAmt:m.baseAmt,unit:m.unit,amount:(m.amount!=null?m.amount:m.qty)};});
-  if(!S.program){S.program=JSON.parse(JSON.stringify(DEFAULT_PROGRAM));S.progVer=4;}
-  if((S.progVer||0)<4){if(S.program)S.programPrev=S.program;S.program=JSON.parse(JSON.stringify(DEFAULT_PROGRAM));S.progVer=4;save();}
+  if(!S.program){S.program=JSON.parse(JSON.stringify(DEFAULT_PROGRAM));S.progVer=5;}
+  if((S.progVer||0)<4){if(S.program)S.programPrev=S.program;S.program=JSON.parse(JSON.stringify(DEFAULT_PROGRAM));S.progVer=5;save();}
+  // v60: 左肩の痛みでチェストフライをメニューから外す（他の自作変更はそのまま残す）
+  if((S.progVer||0)<5){Object.keys(S.program).forEach(function(d){S.program[d]=(S.program[d]||[]).filter(function(r){return r[0]!=='チェストフライ';});});S.progVer=5;save();}
   S.bwMode=S.bwMode||{};if(!S.abVarLast)S.abVarLast='膝コロ';
   function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}}
 
