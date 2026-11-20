@@ -43,6 +43,10 @@ button{cursor:pointer;}
 .tips summary::after{content:' ▾';font-weight:400;}
 .tips[open] summary::after{content:' ▴';}
 .tipbody{padding:0 10px 9px;line-height:1.55;}
+.fanim{background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:4px 4px 2px;margin:2px 0 6px;}
+.fanim svg{display:block;width:100%;max-width:340px;height:auto;margin:0 auto;cursor:pointer;}
+.fanim svg.paused{opacity:.6;}
+.fcap{font-size:11px;color:var(--faint);text-align:center;}
 .tipbody .th{font-weight:700;margin-top:4px;}
 .tipbody .th.pt{color:#0f5a45;}
 .tipbody .th.ct{color:#b42318;}
@@ -346,7 +350,7 @@ svg.chart{width:100%;height:170px;display:block;}
     <button class="btn" id="resetProg" style="color:var(--danger);">メニューを初期設定に戻す</button>
   </section>
 
-  <div class="ver" id="ver">v64</div>
+  <div class="ver" id="ver">v65</div>
 </div>
 
 <div class="timer" id="timer">
@@ -430,6 +434,117 @@ svg.chart{width:100%;height:170px;display:block;}
     'サイドベンド':{p:['真横に倒す'],c:['前後に倒れない']},
     'ツイスト':{p:['おへそから回す意識'],c:['反動で勢いよく回さない（腰を痛める）']}
   };
+  // v65: フォームの簡易アニメーション（棒人間）。a=伸びた位置、b=縮めた位置。a→bを1秒で上げ、b→aを2秒で下ろす
+  var FL={T:46,UA:26,FA:24,TH:34,SH:34};
+  function fdir(d,s){var r=d*Math.PI/180;s=(s==null?1:s);return[Math.cos(r)*s,Math.sin(r)*s];}
+  function fadd(p,v,l){return[p[0]+v[0]*l,p[1]+v[1]*l];}
+  function fik(P,Q,l1,l2,b){var dx=Q[0]-P[0],dy=Q[1]-P[1],d=Math.sqrt(dx*dx+dy*dy)||0.001;var ux=dx/d,uy=dy/d;var dd=Math.min(l1+l2-0.01,Math.max(Math.abs(l1-l2)+0.01,d));var a=(l1*l1-l2*l2+dd*dd)/(2*dd),h=Math.sqrt(Math.max(0,l1*l1-a*a));var J=[P[0]+ux*a-uy*h*b,P[1]+uy*a+ux*h*b];var E=[P[0]+ux*dd,P[1]+uy*dd];return[J,E];}
+  function flerp(a,b,k){if(typeof a==='number')return a+((typeof b==='number'?b:a)-a)*k;if(a===null||typeof a==='boolean')return a;if(Array.isArray(a))return a.map(function(v,i){return flerp(v,b?b[i]:v,k);});if(a&&typeof a==='object'){var o={};Object.keys(a).forEach(function(key){o[key]=flerp(a[key],b?b[key]:undefined,k);});return o;}return a;}
+  function fmerge(a,b){if(!b)return a;if(typeof a!=='object'||Array.isArray(a))return b===undefined?a:b;var o={};Object.keys(a).forEach(function(k){o[k]=(k in b)?fmerge(a[k],b[k]):a[k];});Object.keys(b).forEach(function(k){if(!(k in o))o[k]=b[k];});return o;}
+  function fmirror(L,cx){if(!L)return L;var o={};if(L.p){o.p=[2*cx-L.p[0],L.p[1]];o.b=-(L.b||1);}if(L.r){o.r=[-L.r[0],L.r[1]];o.b=-(L.b||1);}if(L.a){o.a=L.a.map(function(v){return 180-v;});if(L.s)o.s=L.s;}return o;}
+  function flimb(root,L,l1,l2){if(L.r){var rr=fik(root,[root[0]+L.r[0],root[1]+L.r[1]],l1,l2,L.b||1);return[root,rr[0],rr[1]];}if(L.p){var r=fik(root,L.p,l1,l2,L.b||1);return[root,r[0],r[1]];}var s=L.s||[1,1];var j=fadd(root,fdir(L.a[0]),l1*s[0]);return[root,j,fadd(j,fdir(L.a[1]),l2*s[1])];}
+  function fpose(spec,P){var front=spec.v==='front';var h=P.h,ts=P.ts==null?1:P.ts;var neck=fadd(h,fdir(P.t),FL.T*ts);var head=fadd(neck,fdir(P.t),11);var sy=P.sy==null?(front?4:0):P.sy;
+    var sh1=front?[neck[0]-13,neck[1]+sy]:neck,sh2=front?[neck[0]+13,neck[1]+sy]:neck;var hp1=front?[h[0]-8,h[1]]:h,hp2=front?[h[0]+8,h[1]]:h;
+    var arm2=P.arm2||(front?fmirror(P.arm,neck[0]):P.arm),leg2=P.leg2||(front?fmirror(P.leg,h[0]):P.leg);
+    var A1=flimb(sh1,P.arm,FL.UA,FL.FA),A2=flimb(sh2,arm2,FL.UA,FL.FA),G1=flimb(hp1,P.leg,FL.TH,FL.SH),G2=flimb(hp2,leg2,FL.TH,FL.SH);
+    return{sh1:sh1,sh2:sh2,neck:neck,head:head,h:h,A1:A1,A2:A2,G1:G1,G2:G2,front:front,ft:P.ft,hd:P.hd};}
+    function fseg(p,q,w,c,op){return '<line x1="'+p[0].toFixed(1)+'" y1="'+p[1].toFixed(1)+'" x2="'+q[0].toFixed(1)+'" y2="'+q[1].toFixed(1)+'" stroke="'+c+'" stroke-width="'+w+'" stroke-linecap="round"'+(op?' opacity="'+op+'"':'')+'/>';}
+  function fprop(pr,F){var o='',hand=F.A1[2],hand2=F.A2[2];function at(w){return w==='hand2'?hand2:w==='neck'?F.neck:w==='hip'?F.h:w==='ankle'?F.G1[2]:w==='knee'?F.G1[1]:w==='barc'?[(hand[0]+hand2[0])/2,(hand[1]+hand2[1])/2]:hand;}
+    var p=at(pr.at);
+    if(pr.k==='plate')o+='<circle cx="'+p[0].toFixed(1)+'" cy="'+p[1].toFixed(1)+'" r="'+(pr.r||10)+'" fill="#6b7280" opacity=".85"/><circle cx="'+p[0].toFixed(1)+'" cy="'+p[1].toFixed(1)+'" r="2.5" fill="#f3f4f6"/>';
+    else if(pr.k==='db'){if(F.front){[hand,hand2].forEach(function(q){o+=fseg([q[0]-8,q[1]],[q[0]+8,q[1]],3,'#4b5563')+'<rect x="'+(q[0]-11).toFixed(1)+'" y="'+(q[1]-5).toFixed(1)+'" width="5" height="10" rx="1.5" fill="#4b5563"/><rect x="'+(q[0]+6).toFixed(1)+'" y="'+(q[1]-5).toFixed(1)+'" width="5" height="10" rx="1.5" fill="#4b5563"/>';});}else o+='<circle cx="'+p[0].toFixed(1)+'" cy="'+p[1].toFixed(1)+'" r="5.5" fill="#4b5563"/>';}
+    else if(pr.k==='bar')o+=fseg([Math.min(hand[0],hand2[0])-12,(hand[1]+hand2[1])/2],[Math.max(hand[0],hand2[0])+12,(hand[1]+hand2[1])/2],3.5,'#4b5563');
+    else if(pr.k==='cable')o+=fseg(pr.from,p,1.5,'#9ca3af')+(F.front&&pr.at==='bar'?'':'');
+    else if(pr.k==='pad')o+='<circle cx="'+p[0].toFixed(1)+'" cy="'+p[1].toFixed(1)+'" r="6" fill="#111827" opacity=".8"/>';
+    else if(pr.k==='roller')o+='<circle cx="'+p[0].toFixed(1)+'" cy="'+(p[1]-1).toFixed(1)+'" r="7" fill="none" stroke="#4b5563" stroke-width="3"/>';
+    else if(pr.k==='footplate'){var v=fdir(pr.ang);o+=fseg([p[0]-v[0]*16,p[1]-v[1]*16],[p[0]+v[0]*16,p[1]+v[1]*16],4,'#6b7280');}
+    return o;}
+  function fdraw(spec,k){var B=fmerge(spec.a,spec.b),F;if(spec.vec){var Fa=fpose(spec,spec.a),Fb=fpose(spec,B);F=flerp(Fa,Fb,k);F.front=Fa.front;}else F=fpose(spec,flerp(spec.a,B,k));var hi=spec.hi||[];var BODY='#374151',FAR='#9ca3af',HI='#2f7de1';
+    function col(seg,far){return hi.indexOf(seg)!==-1?HI:(far?FAR:BODY);}var o=(spec.scene||[]).join('');var fo=F.front?null:.55;
+    function foot(G,far){var a=G[2],ang=F.ft==null?(F.front?(G===F.G1?160:20):0):F.ft;var t=fadd(a,fdir(ang),F.front?6:10);return fseg(a,t,5,far&&!F.front?FAR:BODY,far&&!F.front?fo:null);}
+    var farOp=F.front?null:fo;
+    // 奥側の手足
+    o+=fseg(F.G2[0],F.G2[1],8,col('th',!F.front),farOp)+fseg(F.G2[1],F.G2[2],7,col('sh',!F.front),farOp)+foot(F.G2,true);
+    if(!F.front)o+=fseg(F.A2[0],F.A2[1],7,col('ua',true),farOp)+fseg(F.A2[1],F.A2[2],6,col('fa',true),farOp);
+    o+=fseg(F.h,F.neck,F.front?16:11,col('torso'))+(F.front?fseg(F.sh1,F.sh2,8,col('torso')):'');
+    o+='<circle cx="'+F.head[0].toFixed(1)+'" cy="'+F.head[1].toFixed(1)+'" r="8.5" fill="'+BODY+'"/>';
+    o+=fseg(F.G1[0],F.G1[1],8,col('th'))+fseg(F.G1[1],F.G1[2],7,col('sh'))+foot(F.G1,false);
+    if(F.front)o+=fseg(F.A2[0],F.A2[1],7,col('ua'))+fseg(F.A2[1],F.A2[2],6,col('fa'));
+    o+=fseg(F.A1[0],F.A1[1],7,col('ua'))+fseg(F.A1[1],F.A1[2],6,col('fa'));
+    if(F.hd!=null){var hh=F.A1[2];o+=fseg(hh,fadd(hh,fdir(F.hd),8),5,col('fa'));}
+    (spec.props||[]).forEach(function(pr){o+=fprop(pr,F);});
+    return o;}
+  var FLOOR='<line x1="0" y1="174" x2="220" y2="174" stroke="#d1d5db" stroke-width="2"/>';
+  function frect(x,y,w,h,c){return '<rect x="'+x+'" y="'+y+'" width="'+w+'" height="'+h+'" rx="2" fill="'+(c||'#d1d5db')+'"/>';}
+  function fline(x1,y1,x2,y2,w,c){return '<line x1="'+x1+'" y1="'+y1+'" x2="'+x2+'" y2="'+y2+'" stroke="'+(c||'#d1d5db')+'" stroke-width="'+(w||4)+'" stroke-linecap="round"/>';}
+  var BENCH=[FLOOR,frect(60,117,82,7),fline(72,124,72,174,4),fline(130,124,130,174,4)];
+  var LYING={h:[128,110],t:180,leg:{p:[158,172],b:-1}};
+  var STAND={h:[110,104],t:-90,leg:{p:[110,172],b:-1},arm:{a:[90,90]}};
+  var SEAT=[FLOOR,frect(78,128,52,7),fline(104,135,104,174,4)];
+  var SEATF={h:[110,128],t:-90,leg:{a:[90,90],s:[0.35,1]}};
+  var FORMS={
+    bench:{v:'side',scene:BENCH,a:fmerge(LYING,{arm:{p:[87,100],b:1}}),b:{arm:{p:[84,61],b:1}},props:[{k:'plate'}],hi:['torso','fa']},
+    incline:{v:'side',scene:[FLOOR,fline(128,128,84,101,8),frect(110,128,40,7),fline(130,135,130,174,4)],a:{h:[122,123],t:-150,leg:{p:[150,172],b:-1},arm:{p:[86,94],b:1}},b:{arm:{p:[80,50],b:1}},props:[{k:'db'}],hi:['torso','fa']},
+    fly:{v:'front',vec:1,scene:[frect(92,60,36,80,'#e5e7eb')],a:{h:[110,120],t:-90,leg:{a:[95,90]},arm:{a:[178,185]}},b:{arm:{a:[178,185],s:[0.25,0.15]}},props:[{k:'db'}],hi:['torso','ua'],note:'上から見た図'},
+    pecdeck:{v:'front',scene:SEAT.concat([frect(96,48,28,80,'#e5e7eb')]),a:fmerge(SEATF,{arm:{a:[180,-90]}}),b:{arm:{a:[180,-90],s:[0.3,1]}},hi:['torso','ua']},
+    dips:{v:'side',scene:[FLOOR,fline(80,104,150,104,5),fline(140,104,140,174,4)],a:{h:[112,132],t:-80,leg:{a:[100,130]},arm:{p:[124,104],b:1}},b:{h:[110,108],t:-87,arm:{p:[124,104],b:1}},hi:['torso','fa']},
+    pushup:{v:'side',scene:[FLOOR],a:{h:[104,158],t:-9,leg:{p:[40,170],b:1},arm:{p:[146,172],b:1},ft:10},b:{h:[100,140],t:-26,leg:{p:[40,170],b:1},arm:{p:[146,172],b:1}},hi:['torso','fa']},
+    ohp:{v:'front',scene:SEAT,a:fmerge(SEATF,{arm:{a:[180,270]}}),b:{arm:{a:[252,264]}},props:[{k:'db'}],hi:['ua']},
+    lateral:{v:'front',scene:[FLOOR],a:{h:[110,104],t:-90,leg:{a:[90,90]},arm:{a:[98,94]}},b:{arm:{a:[180,182]}},props:[{k:'db'}],hi:['ua']},
+    front:{v:'side',scene:[FLOOR],a:fmerge(STAND,{arm:{a:[80,80]}}),b:{arm:{a:[-2,-4]}},props:[{k:'db'}],hi:['ua']},
+    rear:{v:'front',scene:[FLOOR],a:{h:[110,112],t:-90,ts:0.5,leg:{a:[95,88]},arm:{a:[94,92]}},b:{arm:{a:[180,180]}},props:[{k:'db'}],hi:['ua'],note:'前かがみを正面から'},
+    facepull:{v:'side',scene:[FLOOR,fline(196,20,196,174,5)],a:fmerge(STAND,{t:-93,arm:{p:[160,48],b:1}}),b:{arm:{p:[112,40],b:-1}},props:[{k:'cable',from:[196,48]}],hi:['ua']},
+    extrot:{v:'front',vec:1,scene:[FLOOR],a:{h:[110,104],t:-90,leg:{a:[90,90]},arm:{a:[90,10],s:[1,0.2]}},b:{arm:{a:[90,180],s:[1,1]}},props:[{k:'db'}],hi:['ua'],note:'正面から（前腕を外へ開く）'},
+    pulldown:{v:'front',scene:SEAT.concat([fline(110,0,110,6,2,'#9ca3af')]),a:fmerge(SEATF,{arm:{a:[-118,-108]}}),b:{arm:{a:[125,-75]}},props:[{k:'bar'},{k:'cable',from:[110,0],at:'barc'}],hi:['torso','ua']},
+    chin:{v:'front',scene:[fline(50,12,170,12,5,'#9ca3af')],a:{h:[110,104],t:-90,leg:{a:[92,95]},arm:{p:[84,14],b:-1}},b:{h:[110,70],arm:{p:[84,14],b:-1}},hi:['torso','ua']},
+    row:{v:'side',scene:[FLOOR,frect(60,150,60,7),fline(184,120,184,174,6,'#9ca3af')],a:{h:[86,146],t:-75,leg:{p:[150,166],b:-1},arm:{p:[146,128],b:1}},b:{t:-92,arm:{p:[104,124],b:1}},props:[{k:'cable',from:[184,128]}],hi:['torso','ua']},
+    bentrow:{v:'side',scene:[FLOOR],a:{h:[96,102],t:-32,leg:{p:[110,172],b:-1},arm:{a:[90,90]}},b:{arm:{a:[195,95]}},props:[{k:'plate'}],hi:['torso','ua']},
+    dbrow:{v:'side',scene:[FLOOR,frect(110,126,80,7),fline(120,133,120,174,4),fline(180,133,180,174,4)],a:{h:[96,110],t:-8,leg:{p:[86,172],b:-1},leg2:{p:[150,126],b:-1},arm:{a:[92,90]},arm2:{p:[150,124],b:1}},b:{arm:{a:[200,96]}},props:[{k:'db'}],hi:['torso','ua']},
+    deadlift:{v:'side',scene:[FLOOR],a:{h:[88,124],t:-40,leg:{p:[110,172],b:-1},arm:{a:[90,90]}},b:{h:[106,104],t:-90,arm:{a:[93,92]}},props:[{k:'plate',r:13}],hi:['torso','th']},
+    rdl:{v:'side',scene:[FLOOR],a:{h:[94,106],t:-12,leg:{p:[110,172],b:-1},arm:{a:[90,90]}},b:{h:[106,104],t:-90,arm:{a:[93,92]}},props:[{k:'plate',r:13}],hi:['th']},
+    shrug:{v:'front',scene:[FLOOR],a:{h:[110,104],t:-90,sy:6,leg:{a:[90,90]},arm:{a:[96,90]}},b:{sy:-4},props:[{k:'db'}],hi:['torso']},
+    curl:{v:'side',scene:[FLOOR],a:fmerge(STAND,{arm:{a:[90,88]}}),b:{arm:{a:[84,-68]}},props:[{k:'plate',r:8}],hi:['ua']},
+    dbcurl:{v:'side',scene:[FLOOR],a:fmerge(STAND,{arm:{a:[90,88]}}),b:{arm:{a:[84,-68]}},props:[{k:'db'}],hi:['ua']},
+    preacher:{v:'side',scene:SEAT.concat([fline(118,84,140,108,8,'#d1d5db')]),a:{h:[100,128],t:-85,leg:{p:[136,172],b:-1},arm:{a:[48,52]}},b:{arm:{a:[48,-95]}},props:[{k:'plate',r:8}],hi:['ua']},
+    pressdown:{v:'side',scene:[FLOOR,fline(150,4,150,10,4,'#9ca3af')],a:fmerge(STAND,{t:-84,arm:{a:[95,-50]}}),b:{arm:{a:[95,88]}},props:[{k:'cable',from:[150,8]}],hi:['fa']},
+    skull:{v:'side',scene:BENCH,a:fmerge(LYING,{arm:{a:[-100,118]}}),b:{arm:{a:[-100,262]}},props:[{k:'plate',r:8}],hi:['fa']},
+    french:{v:'side',scene:[FLOOR],a:fmerge(STAND,{arm:{a:[-82,120]}}),b:{arm:{a:[-84,268]}},props:[{k:'db'}],hi:['fa']},
+    kickback:{v:'side',scene:[FLOOR],a:{h:[96,104],t:-20,leg:{p:[110,172],b:-1},arm:{a:[175,90]}},b:{arm:{a:[178,182]}},props:[{k:'db'}],hi:['fa']},
+    wrist:{v:'side',scene:SEAT,a:{h:[100,128],t:-70,leg:{p:[136,172],b:-1},arm:{p:[140,124],b:1},hd:70},b:{hd:-45},hi:['fa']},
+    squat:{v:'side',scene:[FLOOR],a:{h:[78,138],t:-52,leg:{p:[110,172],b:-1},arm:{r:[-6,4],b:-1}},b:{h:[108,104],t:-88},props:[{k:'plate',at:'neck',r:11}],hi:['th']},
+    smith:{v:'side',scene:[FLOOR,fline(98,0,98,174,3,'#e5e7eb')],a:{h:[80,138],t:-58,leg:{p:[118,172],b:-1},arm:{r:[-6,4],b:-1}},b:{h:[110,104],t:-90},props:[{k:'plate',at:'neck',r:11}],hi:['th']},
+    bulgarian:{v:'side',scene:[FLOOR,frect(20,140,46,7),fline(40,147,40,174,4)],a:{h:[96,134],t:-82,leg:{p:[124,172],b:-1},leg2:{p:[52,138],b:-1},arm:{a:[90,90]},ft:0},b:{h:[104,104],t:-88},props:[{k:'db'}],hi:['th']},
+    legpress:{v:'side',scene:[FLOOR,fline(98,150,52,104,9),frect(70,150,50,7),fline(150,58,212,120,3,'#e5e7eb')],a:{h:[96,148],t:-135,leg:{p:[126,118],b:1},arm:{p:[110,152],b:1},ft:-45},b:{leg:{p:[144,100],b:1}},props:[{k:'footplate',at:'ankle',ang:45}],hi:['th']},
+    legext:{v:'side',scene:SEAT.concat([fline(80,128,72,78,8)]),a:{h:[96,128],t:-98,leg:{a:[0,96]},arm:{p:[108,136],b:1},ft:0},b:{leg:{a:[-4,-4]},ft:-94},props:[{k:'pad',at:'ankle'}],hi:['th']},
+    legcurl:{v:'side',scene:[FLOOR,frect(40,138,140,7),fline(60,145,60,174,4),fline(160,145,160,174,4)],a:{h:[106,130],t:-2,leg:{a:[180,180]},arm:{a:[95,20]},ft:90},b:{leg:{a:[182,300]},ft:30},props:[{k:'pad',at:'ankle'}],hi:['th']},
+    lunge:{v:'side',scene:[FLOOR],a:{h:[96,136],t:-88,leg:{p:[130,172],b:-1},leg2:{p:[52,172],b:-1},arm:{a:[90,90]},ft:0},b:{h:[96,106]},props:[{k:'db'}],hi:['th']},
+    hipthrust:{v:'side',scene:[FLOOR,frect(30,124,40,7),fline(50,131,50,174,4)],a:{h:[94,152],t:-147,leg:{p:[138,172],b:-1},arm:{a:[150,90]}},b:{h:[100,124],t:180},props:[{k:'plate',at:'hip',r:11}],hi:['th']},
+    calf:{v:'side',scene:[frect(100,170,40,6,'#d1d5db'),FLOOR],a:fmerge(STAND,{h:[110,100],leg:{p:[110,174],b:-1},ft:-25}),b:{h:[110,90],leg:{p:[110,164],b:-1},ft:40},props:[{k:'db'}],hi:['sh']},
+    adduct:{v:'front',scene:SEAT,a:fmerge(SEATF,{leg:{a:[150,90],s:[0.6,1]},arm:{a:[100,90]}}),b:{leg:{a:[100,90],s:[0.35,1]}},hi:['th']},
+    hlr:{v:'side',scene:[fline(60,10,170,10,5,'#9ca3af')],a:{h:[110,106],t:-90,leg:{a:[90,90]},arm:{p:[112,12],b:1}},b:{t:-98,leg:{a:[-12,-12]}},hi:['torso']},
+    abroller:{v:'side',scene:[FLOOR],a:{h:[52,140],t:-32,leg:{p:[14,170],b:-1},arm:{p:[88,166],b:1},ft:180},b:{h:[100,152],t:-6,arm:{p:[176,166],b:1}},props:[{k:'roller'}],hi:['torso']},
+    crunch:{v:'side',scene:[FLOOR],a:{h:[110,166],t:180,leg:{p:[150,170],b:-1},arm:{a:[0,180]},ft:0},b:{t:214},hi:['torso']},
+    legraise:{v:'side',scene:[FLOOR],a:{h:[110,166],t:180,leg:{a:[-2,-2]},arm:{a:[0,0]},ft:-90},b:{leg:{a:[-88,-88]},ft:0},hi:['torso']},
+    plank:{v:'side',scene:[FLOOR],a:{h:[100,152],t:-3,leg:{p:[34,170],b:1},arm:{p:[168,170],b:1},ft:120},b:{h:[100,151]},hi:['torso']},
+    cablecrunch:{v:'side',scene:[FLOOR,fline(150,0,150,6,4,'#9ca3af')],a:{h:[100,136],t:-80,leg:{p:[66,172],b:-1},arm:{p:[130,98],b:1},ft:180},b:{t:-15,arm:{p:[146,132],b:1}},props:[{k:'cable',from:[150,4]}],hi:['torso']},
+    sidebend:{v:'front',scene:[FLOOR],a:{h:[110,104],t:-90,leg:{a:[92,92]},arm:{a:[90,90]},arm2:{a:[45,135]}},b:{t:-72},props:[{k:'db'}],hi:['torso']},
+    twist:{v:'front',vec:1,scene:[FLOOR],a:{h:[110,128],t:-90,leg:{a:[90,90],s:[0.35,1]},arm:{a:[150,170],s:[0.7,0.6]},arm2:{a:[150,170],s:[0.9,0.6]}},b:{arm:{a:[30,10],s:[0.9,0.6]},arm2:{a:[30,10],s:[0.7,0.6]}},hi:['torso'],note:'正面から'}
+  };
+  var FORM_OF={'ベンチプレス':'bench','クローズグリップベンチ':'bench','マシンチェストプレス':'bench','インクラインDBプレス':'incline','ダンベルフライ':'fly','チェストフライ':'pecdeck','ディップス':'dips','プッシュアップ':'pushup',
+    'ショルダープレス':'ohp','DBショルダープレス':'ohp','サイドレイズ':'lateral','フロントレイズ':'front','リアレイズ':'rear','フェイスプル':'facepull','DB外旋':'extrot',
+    'ラットプルダウン':'pulldown','ワイドラットプル':'pulldown','チンニング':'chin','懸垂':'chin','シーテッドロー':'row','ケーブルロー':'row','ベントオーバーロー':'bentrow','ワンハンドDBロー':'dbrow','デッドリフト':'deadlift','ルーマニアンデッドリフト':'rdl','シュラッグ':'shrug',
+    'バーベルカール':'curl','EZバーカール':'curl','リバースカール':'curl','ダンベルカール':'dbcurl','ハンマーカール':'dbcurl','コンセントレーションカール':'dbcurl','プリーチャーカール(ユニカ）':'preacher',
+    'プレスダウン':'pressdown','スカルクラッシャー':'skull','フレンチプレス':'french','キックバック':'kickback','リストカール':'wrist',
+    'スクワット':'squat','スミススクワット':'smith','ハックスクワット':'squat','ブルガリアンスクワット':'bulgarian','レッグプレス':'legpress','レッグエクステンション':'legext','レッグカール':'legcurl','ランジ':'lunge','ヒップスラスト':'hipthrust','カーフレイズ':'calf','アダクション':'adduct',
+    'ハンギングレッグレイズ':'hlr','腹筋ローラー':'abroller','クランチ':'crunch','レッグレイズ':'legraise','プランク':'plank','ケーブルクランチ':'cablecrunch','サイドベンド':'sidebend','ツイスト':'twist'};
+  function formFor(ex){if(FORM_OF[ex])return FORMS[FORM_OF[ex]];var best=null,bl=0;Object.keys(FORM_OF).forEach(function(k){if(k.length>bl&&ex.indexOf(k)!==-1){best=k;bl=k.length;}});return best?FORMS[FORM_OF[best]]:null;}
+  function fease(x){return x<0.5?2*x*x:1-Math.pow(-2*x+2,2)/2;}
+  // 1周3.8秒：止め0.4→上げ1.0→止め0.4→下ろし2.0
+  function startFormAnim(svg,spec){if(!svg||svg._run)return;svg._run=1;var t0=null,paused=false,pk=0;svg.addEventListener('click',function(){paused=!paused;svg.classList.toggle('paused',paused);t0=null;});
+    function frame(ts){if(!svg.isConnected)return;var det=svg.closest('details');if(det&&!det.open){svg._run=0;return;}
+      if(!paused){if(t0==null)t0=ts-pk*1000;var c=((ts-t0)/1000)%3.8;pk=c;var k=c<0.4?0:c<1.4?fease((c-0.4)/1):c<1.8?1:1-fease((c-1.8)/2);svg.querySelector('g').innerHTML=fdraw(spec,k);}
+      requestAnimationFrame(frame);}
+    svg.querySelector('g').innerHTML=fdraw(spec,0);requestAnimationFrame(frame);}
   function tipsFor(ex){if(TIPS[ex])return TIPS[ex];var best=null,bl=0;Object.keys(TIPS).forEach(function(k){if(k.length>bl&&ex.indexOf(k)!==-1){best=k;bl=k.length;}});return best?TIPS[best]:null;}
   function escH(s){return String(s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
   var MEAL_PRESETS=[['朝食',565,58],['昼食',990,38],['トレ後プロテイン',100,20]];
@@ -549,8 +664,8 @@ svg.chart{width:100%;height:170px;display:block;}
       }else{
         inrow='<div class="inrow"><div class="ig"><label>重量 (kg)</label><div class="iginput"><input class="w" type="number" inputmode="decimal" step="2.5" placeholder="kg">'+recallW+'</div></div><span class="x">×</span>'+repIg+'<button class="rec" type="button">記録</button></div>';
       }
-      var tp=tipsFor(ex),myMemo=(S.exNotes&&S.exNotes[ex])||'';
-      var tipsHtml='<details class="tips"'+(S.tipsOpen?' open':'')+'><summary>💡 ポイント・注意点</summary><div class="tipbody">'
+      var tp=tipsFor(ex),fm=formFor(ex),myMemo=(S.exNotes&&S.exNotes[ex])||'';
+      var tipsHtml='<details class="tips"'+(S.tipsOpen?' open':'')+'><summary>💡 ポイント・注意点</summary><div class="tipbody">'+(fm?'<div class="fanim"><svg viewBox="0 0 220 180" role="img" aria-label="'+escH(ex)+'のフォーム"><g></g></svg><div class="fcap">'+(fm.note?escH(fm.note)+'・':'')+'上げる1秒 → 下ろす2秒（青＝効く所／タップで一時停止）</div></div>':'')
         +(tp?('<div class="th pt">ポイント</div><ul>'+tp.p.map(function(t){return '<li>'+escH(t)+'</li>';}).join('')+'</ul>'+(tp.c&&tp.c.length?'<div class="th ct">注意点</div><ul>'+tp.c.map(function(t){return '<li>'+escH(t)+'</li>';}).join('')+'</ul>':'')):'<div class="faint">この種目の解説はまだありません。下のメモに自分用のポイントを書けます。</div>')
         +'<div class="th">自分用メモ</div><textarea class="exmemo" placeholder="気づいたこと・フォームのコツなど（自動保存）">'+escH(myMemo)+'</textarea></div></details>';
       card.innerHTML=head+'<div class="ebody"><div class="prev">'+prev+' <span class="scheme">／ 目安 '+scheme+'</span></div>'+recLine+tipsHtml
@@ -558,7 +673,8 @@ svg.chart{width:100%;height:170px;display:block;}
         +'<div class="restrow"><span class="rlab">休憩</span><button class="rminus" type="button">−15</button><span class="rsec">'+rest+'秒</span><button class="rplus" type="button">＋15</button><button class="rstart" type="button">▶ 開始</button></div>'
         +'<div class="sets"></div><button class="exdel" type="button">この種目をメニューから削除</button></div>';
       card.querySelector('.ehead').addEventListener('click',function(){openEx=null;renderRec();});
-      var tdet=card.querySelector('.tips');if(tdet)tdet.addEventListener('toggle',function(){S.tipsOpen=tdet.open;save();});
+      var tdet=card.querySelector('.tips');if(tdet)tdet.addEventListener('toggle',function(){S.tipsOpen=tdet.open;save();if(tdet.open&&fm)startFormAnim(tdet.querySelector('.fanim svg'),fm);});
+      if(tdet&&tdet.open&&fm)startFormAnim(tdet.querySelector('.fanim svg'),fm);
       var tmem=card.querySelector('.exmemo');if(tmem)tmem.addEventListener('input',function(){if(!S.exNotes)S.exNotes={};var v=tmem.value;if(v.trim())S.exNotes[ex]=v;else delete S.exNotes[ex];save();});
       var wI=card.querySelector('.w'),rI=card.querySelector('.r');
       function logSet(w,r,opts){opts=opts||{};if(!(r>0))return false;var entry={date:today,exercise:ex,setNo:todaySets(ex).length+1,reps:r,dayKey:daySel.value};if(opts.abRoller){entry.weight=0;entry.variant=opts.variant;}else if(opts.bw){var add=(w>0?w:0);entry.weight=bwNow()+add;entry.bw=true;if(add>0)entry.bwAdd=add;}else{if(!(w>0))return false;entry.weight=w;}var priorE=e1rmBest(ex),priorW=maxWeight(ex);S.logs.push(entry);save();renderRec();if(!noOneRM(ex)){var newE=e1rm(entry.weight,r,ex);if((priorE>0&&newE>priorE+0.01)||(priorW>0&&entry.weight>priorW))celebratePR(ex,newE,priorE,entry.weight,priorW);}return true;}
