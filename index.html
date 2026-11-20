@@ -37,6 +37,17 @@ button{cursor:pointer;}
 .reco{font-size:13px;margin:8px 0 2px;color:#0f5a45;background:var(--rest-bg);border-radius:10px;padding:7px 10px;line-height:1.5;}
 .reco b{font-weight:700;font-size:15px;}
 .reco.faint{color:var(--muted);background:#f3f4f6;}
+.tips{margin:8px 0 2px;background:#f3f4f6;border-radius:10px;font-size:13px;}
+.tips summary{padding:7px 10px;cursor:pointer;font-weight:700;color:var(--muted);list-style:none;}
+.tips summary::-webkit-details-marker{display:none;}
+.tips summary::after{content:' ▾';font-weight:400;}
+.tips[open] summary::after{content:' ▴';}
+.tipbody{padding:0 10px 9px;line-height:1.55;}
+.tipbody .th{font-weight:700;margin-top:4px;}
+.tipbody .th.pt{color:#0f5a45;}
+.tipbody .th.ct{color:#b42318;}
+.tipbody ul{margin:2px 0 4px;padding-left:1.3em;}
+.tipbody .exmemo{width:100%;box-sizing:border-box;min-height:52px;margin-top:4px;padding:6px 8px;border:1px solid #e5e7eb;border-radius:8px;font:inherit;font-size:13px;background:#fff;resize:vertical;}
 .ig{display:flex;flex-direction:column;gap:3px;}
 .ig label{font-size:11px;color:var(--muted);}
 .ig input{width:92px;padding:11px 8px;border:1px solid var(--line);border-radius:10px;text-align:center;font-size:18px;}
@@ -335,7 +346,7 @@ svg.chart{width:100%;height:170px;display:block;}
     <button class="btn" id="resetProg" style="color:var(--danger);">メニューを初期設定に戻す</button>
   </section>
 
-  <div class="ver" id="ver">v63</div>
+  <div class="ver" id="ver">v64</div>
 </div>
 
 <div class="timer" id="timer">
@@ -359,6 +370,68 @@ svg.chart{width:100%;height:170px;display:block;}
   };
   // 肩が治るまでの重量上限（おすすめ重量がこれを超えないようにする）
   var WEIGHT_CAP={'ベンチプレス':70};
+  // v64: 種目ごとのポイント・注意点（p=ポイント, c=注意点）。名前が完全一致しない時は、名前に含まれる一番長い種目名のものを使う
+  var TIPS={
+    'ベンチプレス':{p:['肩甲骨を寄せて下げ、胸を張ってブリッジを作る','バーはみぞおち〜乳首の線に下ろす','足裏で床を押し、お尻はベンチにつけたまま'],c:['肘を真横に開きすぎない（45〜70°）＝肩を守る','左肩に痛みが出たらその日は中止。上限70kgを守る','高重量はセーフティーバーを必ずセット']},
+    'インクラインDBプレス':{p:['ベンチ角度は30°前後','肩甲骨を寄せたまま、胸の上部で押す','下ろす時はゆっくり2〜3秒'],c:['深く下ろしすぎて肩の前がつっぱるなら手前で止める','終わったらDBを胸→太ももに戻してから起きる']},
+    'ダンベルフライ':{p:['肘は軽く曲げた角度で固定','胸を開いて伸びを感じるところまで'],c:['重さより可動域。深く下ろしすぎると肩を痛める']},
+    'チェストフライ':{p:['胸を張り、腕で抱きかかえるように閉じる','戻す時に胸の伸びを感じる'],c:['肩が前に出たら重すぎ。左肩が痛む間は控える']},
+    'マシンチェストプレス':{p:['グリップは胸の中央の高さに合わせる','肩甲骨を背もたれにつけたまま押す'],c:['押し切って肘をロックしない','肩がすくむなら座面の高さを見直す']},
+    'ディップス':{p:['少し前傾すると胸、まっすぐだと三頭に効く','肩がすくまないよう肩甲骨を下げる'],c:['肩の前が痛むなら深く下ろさない。左肩が治るまで控える']},
+    'プッシュアップ':{p:['頭からかかとまで一直線','胸が床に近づくまで下ろす'],c:['腰が落ちる・お尻が上がるのはNG']},
+    'ショルダープレス':{p:['お腹を締めて腰を反らない','耳の横を通って真上に押す'],c:['肩に痛みがある時は無理に頭上まで上げない']},
+    'DBショルダープレス':{p:['お腹を締めて腰を反らない','DBは耳の高さまで下ろす'],c:['左肩が痛む間は控える種目']},
+    'サイドレイズ':{p:['小指側を少し上にして、肘から上げる意識','肩の高さまで。下ろしはゆっくり'],c:['反動で振り上げない','肩がすくむ＝僧帽筋に逃げている。重さを下げる']},
+    'フロントレイズ':{p:['肩の高さまで上げる','体を揺らさない'],c:['肩の前が痛む時は控える']},
+    'リアレイズ':{p:['上体を倒し、腕を横に開く','肩甲骨は寄せすぎず、肩の後ろで上げる'],c:['軽めの重さで回数を丁寧に。反動はNG']},
+    'フェイスプル':{p:['ロープを顔の方へ引き、最後に拳を外へ開く','肘は肩の高さ'],c:['重さより「外に開く」動きを優先（肩のケア種目）']},
+    'DB外旋':{p:['肘を脇腹につけて90°に曲げたまま','前腕をワイパーのように外へ回す'],c:['ごく軽い重さで。痛みが出ない範囲だけ動かす']},
+    'ラットプルダウン':{p:['胸を張り、バーを鎖骨の上に引く','肘を下・後ろに引く意識'],c:['体を大きく後ろに倒して反動を使わない']},
+    'ワイドラットプル':{p:['胸を張り、バーを鎖骨に向けて引く','肘を真下に下ろす意識で背中の広がりに効かせる'],c:['首の後ろに引かない（肩を痛める）','反動で上体を振らない']},
+    'チンニング':{p:['肩甲骨を下げてから引き始める','胸をバーに近づける'],c:['反動（キッピング）を使わない','下ろす時もゆっくり。肩の痛みが出たら中止']},
+    '懸垂':{p:['肩甲骨を下げてから引き始める','胸をバーに近づける'],c:['反動を使わない','下ろす時もゆっくり']},
+    'シーテッドロー':{p:['胸を張って、お腹へ引く','引き切って肩甲骨を寄せ、1秒止める'],c:['上体を後ろに倒して引かない','腰を丸めない']},
+    'ケーブルロー':{p:['胸を張って、お腹へ引く','肩甲骨を寄せて背中で引く'],c:['上体の反動を使わない','腰を丸めない']},
+    'ベントオーバーロー':{p:['股関節から前傾（45°前後）','バーはお腹に引く'],c:['背中を丸めない＝腰を痛める']},
+    'ワンハンドDBロー':{p:['片手片膝をベンチにつき背中は平ら','DBは腰の方へ弧を描いて引く'],c:['体をひねって引かない']},
+    'デッドリフト':{p:['バーはすねに沿わせる','背中をまっすぐ、お尻を後ろに引いて構える','床を脚で押す意識で立ち上がる'],c:['背中が丸まったらその回で終了','腰に違和感が出たら即中止。重さより安全']},
+    'ルーマニアンデッドリフト':{p:['膝は軽く曲げたまま、お尻を後ろへ','もも裏の伸びを感じるところまで下ろす'],c:['背中を丸めない','バーを体から離さない']},
+    'シュラッグ':{p:['肩をまっすぐ上にすくめる','上で1秒止める'],c:['肩を回さない']},
+    'バーベルカール':{p:['肘を体の横に固定','下ろす時もゆっくり'],c:['体を反らせて反動で上げない']},
+    'EZバーカール':{p:['肘を体の横に固定','上で二頭をしぼる','下ろす時もゆっくり'],c:['体を反らせて反動で上げない','手首を曲げすぎない']},
+    'ダンベルカール':{p:['肘を固定し、小指側を上に回しながら上げる'],c:['反動を使わない']},
+    'ハンマーカール':{p:['親指が上（縦持ち）のまま上げる','肘の位置は動かさない'],c:['反動を使わない']},
+    'コンセントレーションカール':{p:['肘を太ももの内側に当てて固定','上でしっかりしぼる'],c:['肩で引き上げない']},
+    'プリーチャーカール(ユニカ）':{p:['脇の下をパッドにしっかり当てる','下ろし切る手前まで丁寧に'],c:['一番下で肘を伸ばし切って反動をつけない（肘を痛める）']},
+    'プレスダウン':{p:['肘を脇腹に固定して、肘から下だけ動かす','下で伸ばし切って三頭をしぼる'],c:['体重をかけて押し下げない','肘が前後に動いたら重すぎ']},
+    'スカルクラッシャー':{p:['肘を天井に向けたまま固定','額〜頭の上に下ろす'],c:['肘が痛む時は控える。重さは控えめに']},
+    'フレンチプレス':{p:['肘を耳の横で固定','頭の後ろへ下ろして伸ばす'],c:['肘が開かないように']},
+    'キックバック':{p:['上腕を床と平行に固定','後ろに伸ばし切って止める'],c:['肩を動かして振らない']},
+    'クローズグリップベンチ':{p:['手幅は肩幅くらい','肘を脇に沿わせて下ろす'],c:['手幅を狭くしすぎると手首を痛める','左肩に痛みが出たら中止']},
+    'リストカール':{p:['前腕をベンチや太ももに置き、手首だけ動かす','ゆっくり大きく'],c:['重すぎると手首を痛める']},
+    'リバースカール':{p:['順手で持ち、肘を固定して上げる'],c:['手首を反らせない']},
+    'スクワット':{p:['足幅は肩幅、つま先と膝は同じ向き','お尻を後ろに引きながらしゃがむ','太ももが床と平行かそれ以下まで'],c:['膝が内側に入らないように','背中を丸めない。セーフティーバーを必ずセット']},
+    'スミススクワット':{p:['足は少し前に置き、お尻を後ろへ引くようにしゃがむ','膝とつま先は同じ向き','太ももが床と平行まで'],c:['膝が内側に入らないように','腰を丸めない。ストッパーを必ずセット']},
+    'ブルガリアンスクワット':{p:['後ろ足をベンチに乗せ、前脚に体重をのせる','まっすぐ下にしゃがむ'],c:['前膝が内側に入らない','グラつく時は何かにつかまってOK']},
+    'レッグプレス':{p:['足は肩幅、プレートの真ん中','膝が胸に近づくところまで下ろす'],c:['押し切って膝をロックしない','お尻がシートから浮くほど深く下ろさない（腰に負担）']},
+    'ハックスクワット':{p:['背中をパッドにつけたまま深くしゃがむ'],c:['膝をロックしない']},
+    'レッグエクステンション':{p:['膝の位置をマシンの軸に合わせる','上で1秒止めて太ももをしぼる'],c:['反動で蹴り上げない','膝に痛みが出たら重さを下げる']},
+    'レッグカール':{p:['膝をマシンの軸に合わせる','かかとをお尻に近づけるように曲げる','戻す時はゆっくり'],c:['お尻を浮かせない・反動を使わない']},
+    'ランジ':{p:['大きく一歩踏み出し、まっすぐ下へ'],c:['前膝が内側に入らない']},
+    'ヒップスラスト':{p:['あごを引き、お尻で押し上げる','上でお尻をしぼって1秒止める'],c:['腰を反らせて上げない']},
+    'カーフレイズ':{p:['かかとを深く下ろして伸ばす','つま先立ちで1秒止める'],c:['弾んで反動を使わない']},
+    'アダクション':{p:['内ももで閉じ、ゆっくり戻す'],c:['開きすぎない']},
+    'ハンギングレッグレイズ':{p:['骨盤を丸めて脚を上げる（お腹で上げる）','下ろす時もゆっくり'],c:['体を振って反動で上げない','握力が先に切れるならストラップを使う']},
+    '腹筋ローラー':{p:['お腹を丸めたまま転がす','戻る時もお腹の力で'],c:['腰が反る手前で止める（腰を痛める）','膝コロで余裕が出てから立ちコロへ']},
+    'クランチ':{p:['おへそを見るように背中を丸める'],c:['首を手で引っ張らない']},
+    'レッグレイズ':{p:['腰を床につけたまま脚を上げ下げ'],c:['腰が浮くなら膝を曲げる']},
+    'プランク':{p:['頭からかかとまで一直線','お腹とお尻に力を入れる'],c:['腰が落ちる・お尻が上がるのはNG']},
+    'ケーブルクランチ':{p:['お腹を丸めて肘を太ももへ'],c:['腕で引かない']},
+    'サイドベンド':{p:['真横に倒す'],c:['前後に倒れない']},
+    'ツイスト':{p:['おへそから回す意識'],c:['反動で勢いよく回さない（腰を痛める）']}
+  };
+  function tipsFor(ex){if(TIPS[ex])return TIPS[ex];var best=null,bl=0;Object.keys(TIPS).forEach(function(k){if(k.length>bl&&ex.indexOf(k)!==-1){best=k;bl=k.length;}});return best?TIPS[best]:null;}
+  function escH(s){return String(s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
   var MEAL_PRESETS=[['朝食',565,58],['昼食',990,38],['トレ後プロテイン',100,20]];
   var FOODS=[
     ['鶏むね肉',108,22,1.5,0,'たんぱく源',100,'g'],['鶏もも(皮なし)',113,19,5,0,'たんぱく源',100,'g'],
@@ -476,11 +549,17 @@ svg.chart{width:100%;height:170px;display:block;}
       }else{
         inrow='<div class="inrow"><div class="ig"><label>重量 (kg)</label><div class="iginput"><input class="w" type="number" inputmode="decimal" step="2.5" placeholder="kg">'+recallW+'</div></div><span class="x">×</span>'+repIg+'<button class="rec" type="button">記録</button></div>';
       }
-      card.innerHTML=head+'<div class="ebody"><div class="prev">'+prev+' <span class="scheme">／ 目安 '+scheme+'</span></div>'+recLine
+      var tp=tipsFor(ex),myMemo=(S.exNotes&&S.exNotes[ex])||'';
+      var tipsHtml='<details class="tips"'+(S.tipsOpen?' open':'')+'><summary>💡 ポイント・注意点</summary><div class="tipbody">'
+        +(tp?('<div class="th pt">ポイント</div><ul>'+tp.p.map(function(t){return '<li>'+escH(t)+'</li>';}).join('')+'</ul>'+(tp.c&&tp.c.length?'<div class="th ct">注意点</div><ul>'+tp.c.map(function(t){return '<li>'+escH(t)+'</li>';}).join('')+'</ul>':'')):'<div class="faint">この種目の解説はまだありません。下のメモに自分用のポイントを書けます。</div>')
+        +'<div class="th">自分用メモ</div><textarea class="exmemo" placeholder="気づいたこと・フォームのコツなど（自動保存）">'+escH(myMemo)+'</textarea></div></details>';
+      card.innerHTML=head+'<div class="ebody"><div class="prev">'+prev+' <span class="scheme">／ 目安 '+scheme+'</span></div>'+recLine+tipsHtml
         +inrow
         +'<div class="restrow"><span class="rlab">休憩</span><button class="rminus" type="button">−15</button><span class="rsec">'+rest+'秒</span><button class="rplus" type="button">＋15</button><button class="rstart" type="button">▶ 開始</button></div>'
         +'<div class="sets"></div><button class="exdel" type="button">この種目をメニューから削除</button></div>';
       card.querySelector('.ehead').addEventListener('click',function(){openEx=null;renderRec();});
+      var tdet=card.querySelector('.tips');if(tdet)tdet.addEventListener('toggle',function(){S.tipsOpen=tdet.open;save();});
+      var tmem=card.querySelector('.exmemo');if(tmem)tmem.addEventListener('input',function(){if(!S.exNotes)S.exNotes={};var v=tmem.value;if(v.trim())S.exNotes[ex]=v;else delete S.exNotes[ex];save();});
       var wI=card.querySelector('.w'),rI=card.querySelector('.r');
       function logSet(w,r,opts){opts=opts||{};if(!(r>0))return false;var entry={date:today,exercise:ex,setNo:todaySets(ex).length+1,reps:r,dayKey:daySel.value};if(opts.abRoller){entry.weight=0;entry.variant=opts.variant;}else if(opts.bw){var add=(w>0?w:0);entry.weight=bwNow()+add;entry.bw=true;if(add>0)entry.bwAdd=add;}else{if(!(w>0))return false;entry.weight=w;}var priorE=e1rmBest(ex),priorW=maxWeight(ex);S.logs.push(entry);save();renderRec();if(!noOneRM(ex)){var newE=e1rm(entry.weight,r,ex);if((priorE>0&&newE>priorE+0.01)||(priorW>0&&entry.weight>priorW))celebratePR(ex,newE,priorE,entry.weight,priorW);}return true;}
       var bt=card.querySelector('.bwtog');if(bt)bt.addEventListener('click',function(){if(!S.bwMode)S.bwMode={};S.bwMode[ex]=!bwOn(ex);save();renderRec();});
